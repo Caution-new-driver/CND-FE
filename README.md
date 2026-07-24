@@ -9,7 +9,6 @@
 - Ground Rule
 
 ## 개발 환경
-- Node 버전
-- React Native 버전
+- React 
 
 ## 작업 방법
