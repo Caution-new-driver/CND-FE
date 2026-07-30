@@ -1,8 +1,13 @@
+import { Routes, Route } from 'react-router-dom'
+import { DropStartPage } from '@/pages/DropStart'
+import { DesignRequirementPage } from '@/pages/DesignRequirement'
+
 function App() {
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <h1 className="text-2xl font-medium">next:R.U.N</h1>
-    </div>
+    <Routes>
+      <Route path="/" element={<DropStartPage />} />
+      <Route path="/drops/:dropId/design-requirement" element={<DesignRequirementPage />} />
+    </Routes>
   )
 }
 
