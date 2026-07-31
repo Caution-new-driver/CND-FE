@@ -28,5 +28,4 @@ export interface DesignRequirementResponse {
   minGrade: string | null
   accessoryColor: string | null
   usePointMaterial: boolean | null
-  sketchImageUrl: string | null
 }
