@@ -31,7 +31,6 @@ export function DesignRequirementPage() {
   const [minGrade, setMinGrade] = useState('')
   const [accessoryColor, setAccessoryColor] = useState('')
   const [usePointMaterial, setUsePointMaterial] = useState('false')
-  const [sketchImage, setSketchImage] = useState<File | null>(null)
 
   const { mutate, data, isPending, isError, isSuccess } = useMutation({
     mutationFn: () => {
@@ -42,7 +41,6 @@ export function DesignRequirementPage() {
       if (minGrade) formData.append('minGrade', minGrade)
       if (accessoryColor) formData.append('accessoryColor', accessoryColor)
       formData.append('usePointMaterial', usePointMaterial)
-      if (sketchImage) formData.append('sketchImage', sketchImage)
 
       return apiFetch<DesignRequirementResponse>(
         `/api/drops/${dropId}/design-requirement`,
@@ -112,24 +110,10 @@ export function DesignRequirementPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="sketchImage">스케치 이미지 (선택)</Label>
-            <input
-              id="sketchImage"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setSketchImage(e.target.files?.[0] ?? null)}
-              className="text-sm"
-            />
-          </div>
           {isError && (
             <p className="text-sm text-destructive">저장에 실패했습니다. 다시 시도해주세요.</p>
           )}
-          {isSuccess && data && (
-            <p className="text-sm text-primary">
-              저장 완료{data.sketchImageUrl ? ' (스케치 이미지 업로드됨)' : ''}
-            </p>
-          )}
+          {isSuccess && data && <p className="text-sm text-primary">저장 완료</p>}
         </CardContent>
         <CardFooter className="justify-end">
           <Button onClick={() => mutate()} disabled={isPending}>
