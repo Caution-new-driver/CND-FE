@@ -1,7 +1,7 @@
 export interface PatternPiece {
   pieceName: string
-  widthCm: number
-  heightCm: number
+  widthMm: number
+  heightMm: number
   quantity: number
 }
 
