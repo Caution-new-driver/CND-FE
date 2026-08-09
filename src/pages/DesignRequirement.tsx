@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import type {
@@ -11,14 +11,7 @@ import type {
   MaterialType,
 } from '@/types/drop'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
 import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
@@ -71,7 +64,6 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
-  const navigate = useNavigate()
 
   const [materialType, setMaterialType] = useState<MaterialType | ''>('')
   const [color, setColor] = useState<MaterialColor | ''>('')
@@ -95,7 +87,6 @@ export function DesignRequirementPage() {
         { method: 'POST', body: formData },
       )
     },
-    onSuccess: () => navigate(`/drops/${dropId}/materials`),
   })
 
   if (!dropId) {
@@ -104,108 +95,114 @@ export function DesignRequirementPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>디자인 조건 입력</CardTitle>
-          <CardDescription>희망하는 소재 조건을 입력해주세요.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FormField label="희망 소재 종류" htmlFor="materialType">
-            <Select
-              value={materialType}
-              onValueChange={(value) => setMaterialType((value as MaterialType) ?? '')}
-            >
-              <SelectTrigger id="materialType" className="w-full">
-                <SelectValue placeholder="선택">{optionLabel(MATERIAL_TYPE_OPTIONS, materialType)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {MATERIAL_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="색상 계열" htmlFor="color">
-            <Select value={color} onValueChange={(value) => setColor((value as MaterialColor) ?? '')}>
-              <SelectTrigger id="color" className="w-full">
-                <SelectValue placeholder="선택">{optionLabel(COLOR_OPTIONS, color)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {COLOR_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="패턴 선호" htmlFor="pattern">
-            <Select value={pattern} onValueChange={(value) => setPattern((value as MaterialPattern) ?? '')}>
-              <SelectTrigger id="pattern" className="w-full">
-                <SelectValue placeholder="선택">{optionLabel(PATTERN_OPTIONS, pattern)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {PATTERN_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="사용 가능 품질 등급" htmlFor="minGrade">
-            <Select value={minGrade} onValueChange={(value) => setMinGrade((value as MaterialGrade) ?? '')}>
-              <SelectTrigger id="minGrade" className="w-full">
-                <SelectValue placeholder="선택">{minGrade || undefined}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {MIN_GRADE_OPTIONS.map((grade) => (
-                  <SelectItem key={grade} value={grade}>
-                    {grade}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="부자재 색상" htmlFor="accessoryColor">
-            <Select
-              value={accessoryColor}
-              onValueChange={(value) => setAccessoryColor((value as AccessoryColor) ?? '')}
-            >
-              <SelectTrigger id="accessoryColor" className="w-full">
-                <SelectValue placeholder="선택">
-                  {optionLabel(ACCESSORY_COLOR_OPTIONS, accessoryColor)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {ACCESSORY_COLOR_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormField>
-          <FormField label="포인트 소재 사용">
-            <Select value={usePointMaterial} onValueChange={(value) => setUsePointMaterial(value ?? 'false')}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="선택">
-                  {usePointMaterial === 'true' ? '사용' : '미사용'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">사용</SelectItem>
-                <SelectItem value="false">미사용</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormField>
+          <div className="flex flex-col gap-3 rounded-md border border-border p-3.5">
+            <h3 className="text-sm font-bold">희망 소재 조건</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <FormField label="소재 종류" htmlFor="materialType" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select
+                  value={materialType}
+                  onValueChange={(value) => setMaterialType((value as MaterialType) ?? '')}
+                >
+                  <SelectTrigger id="materialType" className="w-full">
+                    <SelectValue placeholder="선택">
+                      {optionLabel(MATERIAL_TYPE_OPTIONS, materialType)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MATERIAL_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="색상 계열" htmlFor="color" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select value={color} onValueChange={(value) => setColor((value as MaterialColor) ?? '')}>
+                  <SelectTrigger id="color" className="w-full">
+                    <SelectValue placeholder="선택">{optionLabel(COLOR_OPTIONS, color)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COLOR_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="패턴 선호" htmlFor="pattern" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select value={pattern} onValueChange={(value) => setPattern((value as MaterialPattern) ?? '')}>
+                  <SelectTrigger id="pattern" className="w-full">
+                    <SelectValue placeholder="선택">{optionLabel(PATTERN_OPTIONS, pattern)}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PATTERN_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="최소 등급" htmlFor="minGrade" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select value={minGrade} onValueChange={(value) => setMinGrade((value as MaterialGrade) ?? '')}>
+                  <SelectTrigger id="minGrade" className="w-full">
+                    <SelectValue placeholder="선택">{minGrade || undefined}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MIN_GRADE_OPTIONS.map((grade) => (
+                      <SelectItem key={grade} value={grade}>
+                        {grade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="부자재 색상" htmlFor="accessoryColor" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select
+                  value={accessoryColor}
+                  onValueChange={(value) => setAccessoryColor((value as AccessoryColor) ?? '')}
+                >
+                  <SelectTrigger id="accessoryColor" className="w-full">
+                    <SelectValue placeholder="선택">
+                      {optionLabel(ACCESSORY_COLOR_OPTIONS, accessoryColor)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCESSORY_COLOR_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label="포인트 소재 사용" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                <Select value={usePointMaterial} onValueChange={(value) => setUsePointMaterial(value ?? 'false')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="선택">
+                      {usePointMaterial === 'true' ? '사용' : '미사용'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">사용</SelectItem>
+                    <SelectItem value="false">미사용</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+            </div>
+          </div>
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
         <CardFooter className="justify-end">
           <Button onClick={() => mutate()} disabled={isPending}>
-            {isPending ? '저장 중...' : '다음'}
+            {isPending ? '저장 중...' : '다음: 소재 후보 추천 받기'}
           </Button>
         </CardFooter>
       </Card>
