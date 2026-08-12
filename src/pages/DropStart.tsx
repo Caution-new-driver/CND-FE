@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { CenteredPage } from '@/components/ui/centered-page'
+import { FormMessage } from '@/components/ui/form-message'
 import { Separator } from '@/components/ui/separator'
 
 export function DropStartPage() {
@@ -22,20 +24,18 @@ export function DropStartPage() {
 
   if (!drop) {
     return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+      <CenteredPage className="flex-col gap-4 text-center">
         <h1 className="text-2xl font-medium">next:R.U.N</h1>
         <Button size="lg" onClick={() => mutate()} disabled={isPending}>
           {isPending ? '기획을 시작하는 중...' : '새 RUN Drop 기획하기'}
         </Button>
-        {isError && (
-          <p className="text-sm text-destructive">Drop 생성에 실패했습니다. 다시 시도해주세요.</p>
-        )}
-      </div>
+        {isError && <FormMessage>Drop 생성에 실패했습니다. 다시 시도해주세요.</FormMessage>}
+      </CenteredPage>
     )
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <CenteredPage>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>{drop.templateName} 템플릿</CardTitle>
@@ -68,6 +68,6 @@ export function DropStartPage() {
           <Button onClick={() => navigate(`/drops/${drop.id}/design-requirement`)}>다음</Button>
         </CardFooter>
       </Card>
-    </div>
+    </CenteredPage>
   )
 }
