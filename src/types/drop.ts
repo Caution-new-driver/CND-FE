@@ -19,6 +19,13 @@ export interface DropResponse {
   requiredAccessories: AccessoryRequirement[]
 }
 
+export interface TemplateResponse {
+  templateId: string
+  templateName: string
+  patternPieces: PatternPiece[]
+  requiredAccessories: AccessoryRequirement[]
+}
+
 export type MaterialType = 'LEATHER' | 'COATED_CANVAS' | 'FABRIC' | 'SYNTHETIC' | 'OTHER'
 export type MaterialColor = 'BLACK' | 'BROWN' | 'BEIGE' | 'WHITE' | 'RED' | 'BLUE' | 'MULTI' | 'OTHER'
 export type MaterialPattern = 'MONOGRAM' | 'SOLID' | 'GEOMETRIC' | 'STRIPE' | 'OTHER'

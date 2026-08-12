@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
@@ -66,7 +66,6 @@ function buildDetailRows(material: MaterialResponse): Array<[string, string]> {
 }
 
 export function MaterialRegistrationPage() {
-  const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -168,10 +167,6 @@ export function MaterialRegistrationPage() {
       tagMutation.mutate(material.id)
     },
   })
-
-  if (!dropId) {
-    return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
-  }
 
   const handleImageFullSelect = (file: File) => {
     if (imageFullPreview) URL.revokeObjectURL(imageFullPreview)
@@ -494,8 +489,7 @@ export function MaterialRegistrationPage() {
           </DialogContent>
         </Dialog>
         <CardFooter className="justify-end">
-          {/* TODO: 다음 단계(Drop 기획) 라우트가 만들어지면 경로 연결 */}
-          <Button disabled={materials.length === 0} onClick={() => navigate(`/drops/${dropId}/plan`)}>
+          <Button disabled={materials.length === 0} onClick={() => navigate('/drops/new')}>
             다음: Drop 기획 시작
           </Button>
         </CardFooter>
