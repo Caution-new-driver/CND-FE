@@ -47,7 +47,7 @@ export function DropStartPage() {
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
               {drop.patternPieces.map((piece) => (
                 <li key={piece.pieceName}>
-                  {piece.pieceName} — {piece.widthCm}cm × {piece.heightCm}cm × {piece.quantity}개
+                  {piece.pieceName} — {piece.widthMm}mm × {piece.heightMm}mm × {piece.quantity}개
                 </li>
               ))}
             </ul>

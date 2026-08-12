@@ -2,7 +2,14 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
-import type { DesignRequirementResponse } from '@/types/drop'
+import type {
+  AccessoryColor,
+  DesignRequirementResponse,
+  MaterialColor,
+  MaterialGrade,
+  MaterialPattern,
+  MaterialType,
+} from '@/types/drop'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,7 +22,6 @@ import {
 import { CenteredPage } from '@/components/ui/centered-page'
 import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -24,15 +30,54 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+const MATERIAL_TYPE_OPTIONS: { value: MaterialType; label: string }[] = [
+  { value: 'LEATHER', label: '가죽' },
+  { value: 'COATED_CANVAS', label: '코팅캔버스' },
+  { value: 'FABRIC', label: '원단' },
+  { value: 'SYNTHETIC', label: '합성피혁' },
+  { value: 'OTHER', label: '기타' },
+]
+
+const COLOR_OPTIONS: { value: MaterialColor; label: string }[] = [
+  { value: 'BLACK', label: '블랙' },
+  { value: 'BROWN', label: '브라운' },
+  { value: 'BEIGE', label: '베이지' },
+  { value: 'WHITE', label: '화이트' },
+  { value: 'RED', label: '레드' },
+  { value: 'BLUE', label: '블루' },
+  { value: 'MULTI', label: '멀티' },
+  { value: 'OTHER', label: '기타' },
+]
+
+const PATTERN_OPTIONS: { value: MaterialPattern; label: string }[] = [
+  { value: 'MONOGRAM', label: '모노그램' },
+  { value: 'SOLID', label: '무지' },
+  { value: 'GEOMETRIC', label: '지오메트릭' },
+  { value: 'STRIPE', label: '스트라이프' },
+  { value: 'OTHER', label: '기타' },
+]
+
+const MIN_GRADE_OPTIONS: MaterialGrade[] = ['A', 'B', 'C']
+
+const ACCESSORY_COLOR_OPTIONS: { value: AccessoryColor; label: string }[] = [
+  { value: 'GOLD', label: '골드' },
+  { value: 'SILVER', label: '실버' },
+  { value: 'BLACK', label: '블랙' },
+]
+
+function optionLabel(options: readonly { value: string; label: string }[], value: string) {
+  return options.find((option) => option.value === value)?.label
+}
+
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
 
-  const [materialType, setMaterialType] = useState('')
-  const [color, setColor] = useState('')
-  const [pattern, setPattern] = useState('')
-  const [minGrade, setMinGrade] = useState('')
-  const [accessoryColor, setAccessoryColor] = useState('')
+  const [materialType, setMaterialType] = useState<MaterialType | ''>('')
+  const [color, setColor] = useState<MaterialColor | ''>('')
+  const [pattern, setPattern] = useState<MaterialPattern | ''>('')
+  const [minGrade, setMinGrade] = useState<MaterialGrade | ''>('')
+  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>('')
   const [usePointMaterial, setUsePointMaterial] = useState('false')
 
   const { mutate, isPending, isError } = useMutation({
@@ -66,34 +111,82 @@ export function DesignRequirementPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <FormField label="희망 소재 종류" htmlFor="materialType">
-            <Input
-              id="materialType"
+            <Select
               value={materialType}
-              onChange={(e) => setMaterialType(e.target.value)}
-              placeholder="예: 가죽"
-            />
+              onValueChange={(value) => setMaterialType((value as MaterialType) ?? '')}
+            >
+              <SelectTrigger id="materialType" className="w-full">
+                <SelectValue placeholder="선택">{optionLabel(MATERIAL_TYPE_OPTIONS, materialType)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {MATERIAL_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="색상 계열" htmlFor="color">
-            <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="예: 블랙" />
+            <Select value={color} onValueChange={(value) => setColor((value as MaterialColor) ?? '')}>
+              <SelectTrigger id="color" className="w-full">
+                <SelectValue placeholder="선택">{optionLabel(COLOR_OPTIONS, color)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {COLOR_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="패턴 선호" htmlFor="pattern">
-            <Input id="pattern" value={pattern} onChange={(e) => setPattern(e.target.value)} placeholder="예: 무지" />
+            <Select value={pattern} onValueChange={(value) => setPattern((value as MaterialPattern) ?? '')}>
+              <SelectTrigger id="pattern" className="w-full">
+                <SelectValue placeholder="선택">{optionLabel(PATTERN_OPTIONS, pattern)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {PATTERN_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="사용 가능 품질 등급" htmlFor="minGrade">
-            <Input
-              id="minGrade"
-              value={minGrade}
-              onChange={(e) => setMinGrade(e.target.value)}
-              placeholder="예: A"
-            />
+            <Select value={minGrade} onValueChange={(value) => setMinGrade((value as MaterialGrade) ?? '')}>
+              <SelectTrigger id="minGrade" className="w-full">
+                <SelectValue placeholder="선택">{minGrade || undefined}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {MIN_GRADE_OPTIONS.map((grade) => (
+                  <SelectItem key={grade} value={grade}>
+                    {grade}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="부자재 색상" htmlFor="accessoryColor">
-            <Input
-              id="accessoryColor"
+            <Select
               value={accessoryColor}
-              onChange={(e) => setAccessoryColor(e.target.value)}
-              placeholder="예: 골드"
-            />
+              onValueChange={(value) => setAccessoryColor((value as AccessoryColor) ?? '')}
+            >
+              <SelectTrigger id="accessoryColor" className="w-full">
+                <SelectValue placeholder="선택">
+                  {optionLabel(ACCESSORY_COLOR_OPTIONS, accessoryColor)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {ACCESSORY_COLOR_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormField>
           <FormField label="포인트 소재 사용">
             <Select value={usePointMaterial} onValueChange={(value) => setUsePointMaterial(value ?? 'false')}>

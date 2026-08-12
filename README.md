@@ -35,4 +35,4 @@ CND-BE와 동일: `타입: 설명 (관련 ID)`
 2. `npm install`
 3. `.env.example`을 복사해 `.env` 생성 후 `VITE_API_BASE_URL=https://cnd-be-production.up.railway.app`로 채우기 (로컬 백엔드 띄워서 테스트할 땐 `http://localhost:8080`으로 바꿔서 사용)
 4. `npm run dev`로 로컬 실행
-5. `dev`에서 `feat/...` 브랜치 따서 작업 → 커밋 → `dev` 병합 → push
+5. `dev`에서 `feat/...` 브랜치 따서 작업 → 로컬 확인 → 커밋 → push → pr 올리기 → 코드리뷰 받고 수정 → `dev` 병합

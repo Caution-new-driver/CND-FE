@@ -1,7 +1,7 @@
 export interface PatternPiece {
   pieceName: string
-  widthCm: number
-  heightCm: number
+  widthMm: number
+  heightMm: number
   quantity: number
 }
 
@@ -19,13 +19,19 @@ export interface DropResponse {
   requiredAccessories: AccessoryRequirement[]
 }
 
+export type MaterialType = 'LEATHER' | 'COATED_CANVAS' | 'FABRIC' | 'SYNTHETIC' | 'OTHER'
+export type MaterialColor = 'BLACK' | 'BROWN' | 'BEIGE' | 'WHITE' | 'RED' | 'BLUE' | 'MULTI' | 'OTHER'
+export type MaterialPattern = 'MONOGRAM' | 'SOLID' | 'GEOMETRIC' | 'STRIPE' | 'OTHER'
+export type MaterialGrade = 'A' | 'B' | 'C'
+export type AccessoryColor = 'GOLD' | 'SILVER' | 'BLACK'
+
 export interface DesignRequirementResponse {
   id: string
   dropId: string
-  materialType: string | null
-  color: string | null
-  pattern: string | null
-  minGrade: string | null
-  accessoryColor: string | null
+  materialType: MaterialType | null
+  color: MaterialColor | null
+  pattern: MaterialPattern | null
+  minGrade: MaterialGrade | null
+  accessoryColor: AccessoryColor | null
   usePointMaterial: boolean | null
 }
