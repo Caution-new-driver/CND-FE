@@ -91,9 +91,8 @@ export function MaterialRegistrationPage() {
   // 방금 등록 + AI 태깅까지 끝난 소재 (AI 태깅 결과 섹션에 표시)
   const [lastTagged, setLastTagged] = useState<MaterialResponse | null>(null)
 
-  // 등록된 소재 목록 수정 모드 — 백엔드 삭제 API 없이 화면에서만 숨김 처리
+  // 등록된 소재 목록 수정 모드 — x 버튼으로 실제 DELETE 호출
   const [isEditingList, setIsEditingList] = useState(false)
-  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set())
 
   // 소재 상세 오버레이 카드 — 목록에서 클릭한 소재
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialResponse | null>(null)
@@ -103,9 +102,31 @@ export function MaterialRegistrationPage() {
     queryFn: () => apiFetch<MaterialResponse[]>('/api/materials'),
   })
 
-  // 등록(POST /api/materials) -> 성공하면 바로 AI 태깅(POST /api/materials/{id}/ai-tag) 순서로 체이닝
-  const registerMutation = useMutation({
-    mutationFn: async () => {
+  // 삭제(DELETE /api/materials/{id}) — 성공하면 204 No Content, 목록 다시 불러옴
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`/api/materials/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['materials'] })
+    },
+  })
+
+  // AI 태깅(POST /api/materials/{id}/ai-tag) — 등록과는 별도 mutation.
+  // 이게 실패해도 소재는 이미 저장돼 있으므로 등록 실패로 취급하지 않는다.
+  const tagMutation = useMutation({
+    mutationFn: (materialId: string) =>
+      apiFetch<MaterialResponse>(`/api/materials/${materialId}/ai-tag`, {
+        method: 'POST',
+      }),
+    onSuccess: (material) => {
+      setLastTagged(material)
+      queryClient.invalidateQueries({ queryKey: ['materials'] })
+    },
+  })
+
+  // 등록(POST /api/materials) — 성공하면 바로 draft를 비우고(중복 등록 방지),
+  // 이어서 AI 태깅을 별도로 요청한다.
+  const createMutation = useMutation({
+    mutationFn: () => {
       const formData = new FormData()
       formData.append('materialCode', materialCode)
       formData.append('materialType', materialType)
@@ -119,20 +140,17 @@ export function MaterialRegistrationPage() {
       if (imageFull) formData.append('imageFull', imageFull)
       if (imageCloseup) formData.append('imageCloseup', imageCloseup)
 
-      const created = await apiFetch<MaterialResponse>('/api/materials', {
+      return apiFetch<MaterialResponse>('/api/materials', {
         method: 'POST',
         body: formData,
       })
-
-      return apiFetch<MaterialResponse>(`/api/materials/${created.id}/ai-tag`, {
-        method: 'POST',
-      })
     },
     onSuccess: (material) => {
-      setLastTagged(material)
       queryClient.invalidateQueries({ queryKey: ['materials'] })
 
-      // 다음 소재를 위해 draft 초기화
+      // 등록은 이미 끝났으니 AI 태깅 성공 여부와 무관하게 draft부터 비운다.
+      if (imageFullPreview) URL.revokeObjectURL(imageFullPreview)
+      if (imageCloseupPreview) URL.revokeObjectURL(imageCloseupPreview)
       setImageFull(null)
       setImageFullPreview(null)
       setImageCloseup(null)
@@ -146,6 +164,8 @@ export function MaterialRegistrationPage() {
       setHandFeel('')
       setFlexibility('')
       setQuantity('')
+
+      tagMutation.mutate(material.id)
     },
   })
 
@@ -154,11 +174,13 @@ export function MaterialRegistrationPage() {
   }
 
   const handleImageFullSelect = (file: File) => {
+    if (imageFullPreview) URL.revokeObjectURL(imageFullPreview)
     setImageFull(file)
     setImageFullPreview(URL.createObjectURL(file))
   }
 
   const handleImageCloseupSelect = (file: File) => {
+    if (imageCloseupPreview) URL.revokeObjectURL(imageCloseupPreview)
     setImageCloseup(file)
     setImageCloseupPreview(URL.createObjectURL(file))
   }
@@ -175,10 +197,10 @@ export function MaterialRegistrationPage() {
     flexibility.trim() !== '' &&
     quantity.trim() !== ''
 
-  const materials = (materialsQuery.data ?? []).filter((material) => !removedIds.has(material.id))
+  const materials = materialsQuery.data ?? []
 
   const handleRemoveMaterial = (id: string) => {
-    setRemovedIds((prev) => new Set(prev).add(id))
+    deleteMutation.mutate(id)
   }
 
   return (
@@ -231,9 +253,9 @@ export function MaterialRegistrationPage() {
           </PanelSection>
 
           <PanelSection title="AI 태깅 결과" titleExtra={<Badge variant="secondary">AI 자동</Badge>}>
-            {registerMutation.isPending ? (
+            {tagMutation.isPending ? (
               <p className="flex items-center gap-1 py-2 text-[11.5px] text-muted-foreground">
-                <Loader2 className="size-3 animate-spin" /> 등록 및 AI 분석 중...
+                <Loader2 className="size-3 animate-spin" /> AI 분석 중...
               </p>
             ) : lastTagged ? (
               <>
@@ -265,8 +287,10 @@ export function MaterialRegistrationPage() {
                 소재를 등록하면 AI 태깅 결과가 여기 표시됩니다.
               </p>
             )}
-            {registerMutation.isError && (
-              <FormMessage>등록/AI 분석에 실패했습니다. 다시 시도해주세요.</FormMessage>
+            {tagMutation.isError && (
+              <FormMessage>
+                AI 분석에 실패했습니다. 소재는 이미 등록되었으니, 필요하면 목록에서 다시 시도해주세요.
+              </FormMessage>
             )}
           </PanelSection>
 
@@ -348,11 +372,14 @@ export function MaterialRegistrationPage() {
               size="sm"
               variant="outline"
               className="self-end"
-              onClick={() => registerMutation.mutate()}
-              disabled={!canRegister || registerMutation.isPending}
+              onClick={() => createMutation.mutate()}
+              disabled={!canRegister || createMutation.isPending}
             >
-              {registerMutation.isPending ? '등록 중...' : '소재 등록'}
+              {createMutation.isPending ? '등록 중...' : '소재 등록'}
             </Button>
+            {createMutation.isError && (
+              <FormMessage>등록에 실패했습니다. 다시 시도해주세요.</FormMessage>
+            )}
           </PanelSection>
 
           <PanelSection
@@ -365,6 +392,9 @@ export function MaterialRegistrationPage() {
               )
             }
           >
+            {deleteMutation.isError && (
+              <FormMessage>삭제에 실패했습니다. 다시 시도해주세요.</FormMessage>
+            )}
             {materialsQuery.isLoading ? (
               <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
             ) : materials.length === 0 ? (
@@ -401,6 +431,7 @@ export function MaterialRegistrationPage() {
                               e.stopPropagation()
                               handleRemoveMaterial(material.id)
                             }}
+                            disabled={deleteMutation.isPending}
                             aria-label="목록에서 제거"
                             className="rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                           >

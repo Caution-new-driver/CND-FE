@@ -35,7 +35,7 @@ export function DesignRequirementPage() {
   const [accessoryColor, setAccessoryColor] = useState('')
   const [usePointMaterial, setUsePointMaterial] = useState('false')
 
-  const { mutate, data, isPending, isError, isSuccess } = useMutation({
+  const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
       const formData = new FormData()
       if (materialType) formData.append('materialType', materialType)
@@ -109,7 +109,6 @@ export function DesignRequirementPage() {
             </Select>
           </FormField>
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
-          {isSuccess && data && <FormMessage variant="success">저장 완료</FormMessage>}
         </CardContent>
         <CardFooter className="justify-end">
           <Button onClick={() => mutate()} disabled={isPending}>
