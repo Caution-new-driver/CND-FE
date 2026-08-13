@@ -13,5 +13,10 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     throw new Error(`API error ${res.status}: ${res.statusText}`)
   }
 
+  // DELETE 등 204 No Content는 body가 없어서 res.json()이 파싱 에러를 던짐
+  if (res.status === 204) {
+    return undefined as T
+  }
+
   return res.json() as Promise<T>
 }
