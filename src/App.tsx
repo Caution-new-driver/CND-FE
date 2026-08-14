@@ -1,11 +1,8 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
 import { DropStartPage } from '@/pages/DropStart'
 import { DesignRequirementPage } from '@/pages/DesignRequirement'
-<<<<<<< HEAD
 import { MaterialCandidatesPage } from '@/pages/MaterialCandidates'
-=======
 import { MaterialRegistrationPage } from '@/pages/MaterialRegistration'
->>>>>>> origin/dev
 
 function App() {
   return (
