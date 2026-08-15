@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -30,8 +30,6 @@ function candidateLabel(candidate: MaterialCandidateResponse) {
   return `${MATERIAL_TYPE_LABEL[material.materialType]} · ${MATERIAL_COLOR_LABEL[material.color]} (${material.materialCode})`
 }
 
-const NO_POINT_MATERIAL = '__none__'
-
 function accessoryLabel(accessory: AccessoryResponse) {
   return `${accessory.accessoryType} · ${accessory.color}`
 }
@@ -39,48 +37,36 @@ function accessoryLabel(accessory: AccessoryResponse) {
 export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   const [mainCandidateId, setMainCandidateId] = useState('')
-  const [pointCandidateId, setPointCandidateId] = useState('')
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<Record<string, string>>({})
 
-  const candidatesQueryKey = ['drops', dropId, 'material-candidates']
+  // 조합 선택 상태를 전부 비운다 (재계산·재진입 시 이전 선택이 새 후보 목록과
+  // 엇갈리지 않도록 함께 초기화).
+  function resetSelection() {
+    setMainCandidateId('')
+    setSelectedAccessoryIds({})
+  }
 
-  // GET은 이전에 저장된 결과만 반환하므로, 결과가 비어있으면 POST로 재계산한다.
-  const candidatesQuery = useQuery({
-    queryKey: candidatesQueryKey,
-    queryFn: () =>
-      apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`),
-    enabled: Boolean(dropId),
-  })
-
-  const candidates = useMemo(
-    () => candidatesQuery.data?.candidates ?? [],
-    [candidatesQuery.data],
-  )
-
+  // b9~b11 계산은 항상 "필터링 -> 채점 -> 결과 교체" 흐름이라, GET으로 이전 결과를 먼저
+  // 보여주지 않고 진입 시마다 POST로 최신 디자인 조건 기준 재계산한다. 이전 화면(디자인
+  // 조건 입력)에서 조건을 바꾸고 다시 들어와도 항상 최신 후보를 보게 하기 위함이다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`, {
         method: 'POST',
       }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(candidatesQueryKey, data)
-    },
+    onSuccess: () => resetSelection(),
   })
 
   useEffect(() => {
-    if (
-      candidatesQuery.isSuccess &&
-      candidates.length === 0 &&
-      !calculateMutation.isPending &&
-      !calculateMutation.isSuccess
-    ) {
+    if (dropId) {
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidatesQuery.isSuccess, candidates.length])
+  }, [dropId])
+
+  const candidates = calculateMutation.data?.candidates ?? []
 
   // AI 추천 1순위를 기본 선택값으로 잡아둔다
   useEffect(() => {
@@ -94,7 +80,7 @@ export function MaterialCandidatesPage() {
     queryFn: () => apiFetch<AccessoryResponse[]>('/api/accessories'),
   })
 
-  const accessoryGroups = useMemo(() => {
+  const accessoryGroups = (() => {
     const groups = new Map<string, AccessoryResponse[]>()
     for (const accessory of accessoriesQuery.data ?? []) {
       const list = groups.get(accessory.accessoryType) ?? []
@@ -102,7 +88,7 @@ export function MaterialCandidatesPage() {
       groups.set(accessory.accessoryType, list)
     }
     return Array.from(groups.entries())
-  }, [accessoriesQuery.data])
+  })()
 
   const confirmMutation = useMutation({
     mutationFn: async () => {
@@ -111,7 +97,7 @@ export function MaterialCandidatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mainCandidateId,
-          pointCandidateId: pointCandidateId || null,
+          pointCandidateId: null,
         } satisfies MaterialSelectionRequest),
       })
 
@@ -131,8 +117,8 @@ export function MaterialCandidatesPage() {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
   }
 
-  const isLoadingCandidates = candidatesQuery.isLoading || calculateMutation.isPending
-  const hasCandidateError = candidatesQuery.isError || calculateMutation.isError
+  const isLoadingCandidates = calculateMutation.isPending
+  const hasCandidateError = calculateMutation.isError
 
   return (
     <CenteredPage>
@@ -212,51 +198,23 @@ export function MaterialCandidatesPage() {
                 추천 후보가 있어야 조합을 선택할 수 있습니다.
               </p>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <Select value={mainCandidateId} onValueChange={(value) => setMainCandidateId(value ?? '')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="주 소재 선택">
-                      {(value: string) => {
-                        const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : undefined
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {candidates.map((candidate) => (
-                      <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
-                        {candidateLabel(candidate)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={pointCandidateId || NO_POINT_MATERIAL}
-                  onValueChange={(value) =>
-                    setPointCandidateId(value === NO_POINT_MATERIAL ? '' : (value ?? ''))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="포인트 소재 (선택)">
-                      {(value: string) => {
-                        if (value === NO_POINT_MATERIAL || !value) return '사용 안 함'
-                        const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : undefined
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_POINT_MATERIAL}>사용 안 함</SelectItem>
-                    {candidates
-                      .filter((candidate) => candidate.candidateId !== mainCandidateId)
-                      .map((candidate) => (
-                        <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
-                          {candidateLabel(candidate)}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={mainCandidateId} onValueChange={(value) => setMainCandidateId(value ?? '')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="주 소재 선택">
+                    {(value: string) => {
+                      const selected = candidates.find((candidate) => candidate.candidateId === value)
+                      return selected ? candidateLabel(selected) : '주 소재로 사용할 후보를 선택하세요'
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {candidates.map((candidate) => (
+                    <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
+                      {candidateLabel(candidate)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
 
             {accessoriesQuery.isError ? (
@@ -276,7 +234,7 @@ export function MaterialCandidatesPage() {
                         <SelectValue placeholder={`${accessoryType} 색상 선택`}>
                           {(value: string) => {
                             const selected = accessories.find((accessory) => accessory.id === value)
-                            return selected ? accessoryLabel(selected) : undefined
+                            return selected ? accessoryLabel(selected) : `${accessoryType} 색상을 선택하세요`
                           }}
                         </SelectValue>
                       </SelectTrigger>
