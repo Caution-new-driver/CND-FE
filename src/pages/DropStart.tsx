@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import type { DropResponse, TemplateResponse } from '@/types/drop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,10 +13,12 @@ const MINI_BAG_TEMPLATE_NAME = '미니백'
 
 export function DropStartPage() {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
 
   const { data: template, isError: isTemplateError } = useQuery({
     queryKey: ['template', MINI_BAG_TEMPLATE_NAME],
     queryFn: () => apiFetch<TemplateResponse>(`/api/templates/${MINI_BAG_TEMPLATE_NAME}`),
+    enabled: isAuthenticated,
   })
 
   const { mutate, isPending, isError } = useMutation({

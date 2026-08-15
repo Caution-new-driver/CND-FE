@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import type { MaterialResponse } from '@/types/material'
 import {
   MATERIAL_COLOR_LABEL,
@@ -68,6 +69,7 @@ function buildDetailRows(material: MaterialResponse): Array<[string, string]> {
 export function MaterialRegistrationPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { isAuthenticated } = useAuth()
 
   // 소재 사진 — 백엔드가 imageFull(전체샷, 필수) / imageCloseup(클로즈업, 선택) 2슬롯만 받음.
   // 등록 전까지는 이 둘이 하나의 소재 draft로 취급된다. 전체샷이 대표 이미지 역할.
@@ -99,6 +101,7 @@ export function MaterialRegistrationPage() {
   const materialsQuery = useQuery({
     queryKey: ['materials'],
     queryFn: () => apiFetch<MaterialResponse[]>('/api/materials'),
+    enabled: isAuthenticated,
   })
 
   // 삭제(DELETE /api/materials/{id}) — 성공하면 204 No Content, 목록 다시 불러옴
