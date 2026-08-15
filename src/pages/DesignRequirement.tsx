@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import type {
@@ -64,6 +64,7 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
+  const navigate = useNavigate()
 
   const [materialType, setMaterialType] = useState<MaterialType | ''>('')
   const [color, setColor] = useState<MaterialColor | ''>('')
@@ -87,6 +88,7 @@ export function DesignRequirementPage() {
         { method: 'POST', body: formData },
       )
     },
+    onSuccess: () => navigate(`/drops/${dropId}/candidates`),
   })
 
   if (!dropId) {
