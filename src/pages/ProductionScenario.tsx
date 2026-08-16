@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
@@ -43,8 +43,12 @@ export function ProductionScenarioPage() {
       }),
   })
 
+  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가 중복으로
+  // 나가지 않도록 dropId 단위로 한 번만 호출되게 막는다 (MaterialCandidates.tsx와 동일한 이유).
+  const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (dropId) {
+    if (dropId && calculatedForDropId.current !== dropId) {
+      calculatedForDropId.current = dropId
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

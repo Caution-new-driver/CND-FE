@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { itemsLabel, SCENARIO_TITLE } from '@/pages/ProductionScenario'
@@ -49,25 +49,19 @@ export function DropConfirmPage() {
   const [showConfirmNotice, setShowConfirmNotice] = useState(false)
 
   // b13/b14(Drop 확정 · 소개문 저장) API가 아직 없어서, f6에서 이미 계산·확정된
-  // 제작 시나리오 결과를 다시 조회해 요약 정보로만 사용한다.
-  const scenariosMutation = useMutation({
-    mutationFn: () =>
-      apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`, {
-        method: 'POST',
-      }),
+  // 제작 시나리오 결과를 GET으로 그대로 조회해 요약 정보로만 사용한다.
+  // (POST는 재계산 + 서버의 기존 선택 결과를 덮어써버리므로 여기서는 쓰면 안 됨)
+  const scenariosQuery = useQuery({
+    queryKey: ['drops', dropId, 'production-scenarios'],
+    queryFn: () =>
+      apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`),
+    enabled: Boolean(dropId),
   })
 
-  useEffect(() => {
-    if (dropId) {
-      scenariosMutation.mutate()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dropId])
-
-  const scenarios = scenariosMutation.data?.scenarios ?? []
+  const scenarios = scenariosQuery.data?.scenarios ?? []
   const selectedScenario =
     scenarios.find((scenario) => scenario.selected) ??
-    scenarios.find((scenario) => scenario.scenarioId === scenariosMutation.data?.selectedScenarioId)
+    scenarios.find((scenario) => scenario.scenarioId === scenariosQuery.data?.selectedScenarioId)
 
   useEffect(() => {
     if (selectedScenario && !introText) {
@@ -83,8 +77,8 @@ export function DropConfirmPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedScenario])
 
-  const isLoading = scenariosMutation.isPending
-  const hasError = scenariosMutation.isError
+  const isLoading = scenariosQuery.isLoading
+  const hasError = scenariosQuery.isError
 
   if (!dropId) {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
@@ -101,7 +95,9 @@ export function DropConfirmPage() {
             {isLoading ? (
               <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
             ) : hasError ? (
-              <FormMessage>제작안 정보를 불러오지 못했습니다.</FormMessage>
+              <FormMessage>
+                제작안 정보를 불러오지 못했습니다. 이전 단계에서 제작안을 먼저 선택했는지 확인해주세요.
+              </FormMessage>
             ) : !selectedScenario ? (
               <p className="py-2 text-[11.5px] text-muted-foreground">
                 확정된 제작안이 없습니다. 이전 단계에서 제작안을 먼저 선택해주세요.

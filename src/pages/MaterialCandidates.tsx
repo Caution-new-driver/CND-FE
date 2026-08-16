@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -39,48 +39,47 @@ function accessoryLabel(accessory: AccessoryResponse) {
 export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   const [mainCandidateId, setMainCandidateId] = useState('')
   const [pointCandidateId, setPointCandidateId] = useState('')
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<Record<string, string>>({})
 
-  const candidatesQueryKey = ['drops', dropId, 'material-candidates']
+  // 조합 선택 상태를 전부 비운다 (재계산·재진입 시 이전 선택이 새 후보 목록과
+  // 엇갈리지 않도록 함께 초기화).
+  function resetSelection() {
+    setMainCandidateId('')
+    setPointCandidateId('')
+    setSelectedAccessoryIds({})
+  }
 
-  // GET은 이전에 저장된 결과만 반환하므로, 결과가 비어있으면 POST로 재계산한다.
-  const candidatesQuery = useQuery({
-    queryKey: candidatesQueryKey,
-    queryFn: () =>
-      apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`),
-    enabled: Boolean(dropId),
-  })
-
-  const candidates = useMemo(
-    () => candidatesQuery.data?.candidates ?? [],
-    [candidatesQuery.data],
-  )
-
+  // b9~b11 계산은 항상 "필터링 -> 채점 -> 결과 교체" 흐름이라, GET으로 이전 결과를 먼저
+  // 보여주지 않고 진입 시마다 POST로 최신 디자인 조건 기준 재계산한다. 이전 화면(디자인
+  // 조건 입력)에서 조건을 바꾸고 다시 들어와도 항상 최신 후보를 보게 하기 위함이다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`, {
         method: 'POST',
       }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(candidatesQueryKey, data)
-    },
+    onSuccess: () => resetSelection(),
   })
 
+  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가
+  // 중복으로 나가지 않도록 dropId 단위로 한 번만 호출되게 막는다. 이 API는 호출될
+  // 때마다 서버의 이전 결과를 교체해버리므로, 중복 호출되면 화면이 들고 있는
+  // candidateId와 서버에 남은 candidateId가 어긋나 확정 시 404가 날 수 있다.
+  const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (
-      candidatesQuery.isSuccess &&
-      candidates.length === 0 &&
-      !calculateMutation.isPending &&
-      !calculateMutation.isSuccess
-    ) {
+    if (dropId && calculatedForDropId.current !== dropId) {
+      calculatedForDropId.current = dropId
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [candidatesQuery.isSuccess, candidates.length])
+  }, [dropId])
+
+  const candidates = useMemo(
+    () => calculateMutation.data?.candidates ?? [],
+    [calculateMutation.data],
+  )
 
   // AI 추천 1순위를 기본 선택값으로 잡아둔다
   useEffect(() => {
@@ -131,8 +130,8 @@ export function MaterialCandidatesPage() {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
   }
 
-  const isLoadingCandidates = candidatesQuery.isLoading || calculateMutation.isPending
-  const hasCandidateError = candidatesQuery.isError || calculateMutation.isError
+  const isLoadingCandidates = calculateMutation.isPending
+  const hasCandidateError = calculateMutation.isError
 
   return (
     <CenteredPage>
@@ -218,7 +217,7 @@ export function MaterialCandidatesPage() {
                     <SelectValue placeholder="주 소재 선택">
                       {(value: string) => {
                         const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : undefined
+                        return selected ? candidateLabel(selected) : '주 소재로 사용할 후보를 선택하세요'
                       }}
                     </SelectValue>
                   </SelectTrigger>
@@ -241,7 +240,7 @@ export function MaterialCandidatesPage() {
                       {(value: string) => {
                         if (value === NO_POINT_MATERIAL || !value) return '사용 안 함'
                         const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : undefined
+                        return selected ? candidateLabel(selected) : '포인트 소재를 선택하세요'
                       }}
                     </SelectValue>
                   </SelectTrigger>
@@ -276,7 +275,7 @@ export function MaterialCandidatesPage() {
                         <SelectValue placeholder={`${accessoryType} 색상 선택`}>
                           {(value: string) => {
                             const selected = accessories.find((accessory) => accessory.id === value)
-                            return selected ? accessoryLabel(selected) : undefined
+                            return selected ? accessoryLabel(selected) : `${accessoryType} 색상을 선택하세요`
                           }}
                         </SelectValue>
                       </SelectTrigger>
@@ -304,7 +303,7 @@ export function MaterialCandidatesPage() {
           </Button>
           <Button
             onClick={() => confirmMutation.mutate()}
-            disabled={!mainCandidateId || confirmMutation.isPending}
+            disabled={!mainCandidateId || calculateMutation.isPending || confirmMutation.isPending}
           >
             {confirmMutation.isPending ? '처리 중...' : '다음: 제작 가능 수량 계산'}
           </Button>
