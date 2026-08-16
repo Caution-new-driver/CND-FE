@@ -202,7 +202,10 @@ export function DesignRequirementPage() {
           </div>
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
-        <CardFooter className="justify-end">
+        <CardFooter className="justify-between">
+          <Button variant="secondary" onClick={() => navigate(-1)}>
+            이전 단계로
+          </Button>
           <Button onClick={() => mutate()} disabled={isPending}>
             {isPending ? '저장 중...' : '다음: 소재 후보 추천 받기'}
           </Button>

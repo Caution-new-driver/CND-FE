@@ -209,18 +209,31 @@ export function DropConfirmPage() {
           </PanelSection>
         </CardContent>
         <CardFooter className="justify-between">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
-            이전 단계로
-          </Button>
           {isConfirmed ? (
-            <Button disabled>확정 완료</Button>
+            <>
+              <Button variant="secondary" onClick={() => navigate('/materials')}>
+                처음화면으로 돌아가기
+              </Button>
+              <div className="flex gap-2">
+                <Button disabled>확정 완료</Button>
+                {/* TODO: Drop 조회 화면이 아직 없어서 임시 버튼만 배치 */}
+                <Button variant="secondary" onClick={() => {}}>
+                  Drop 조회하기
+                </Button>
+              </div>
+            </>
           ) : (
-            <Button
-              disabled={!canConfirm || confirmMutation.isPending}
-              onClick={() => confirmMutation.mutate()}
-            >
-              {confirmMutation.isPending ? '확정 중...' : 'Drop 확정하기'}
-            </Button>
+            <>
+              <Button variant="secondary" onClick={() => navigate(-1)}>
+                이전 단계로
+              </Button>
+              <Button
+                disabled={!canConfirm || confirmMutation.isPending}
+                onClick={() => confirmMutation.mutate()}
+              >
+                {confirmMutation.isPending ? '확정 중...' : 'Drop 확정하기'}
+              </Button>
+            </>
           )}
         </CardFooter>
       </Card>
