@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import type {
   AccessoryColor,
@@ -65,13 +65,28 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
-  const [materialType, setMaterialType] = useState<MaterialType | ''>('')
-  const [color, setColor] = useState<MaterialColor | ''>('')
-  const [pattern, setPattern] = useState<MaterialPattern | ''>('')
-  const [minGrade, setMinGrade] = useState<MaterialGrade | ''>('')
-  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>('')
-  const [usePointMaterial, setUsePointMaterial] = useState('false')
+  // f4에서 "이전 단계로"로 돌아왔을 때 방금 저장했던 조건이 폼에 남아있도록, 저장 mutation의
+  // onSuccess가 채워두는 캐시를 읽어온다. 백엔드에 조회용 GET이 없어서 실제로 fetch하진
+  // 않고(queryFn: skipToken → 항상 비활성) 이미 캐시에 값이 있으면 그것만 사용한다.
+  const cachedRequirement = useQuery({
+    queryKey: ['design-requirement', dropId],
+    queryFn: skipToken,
+  }).data
+
+  const [materialType, setMaterialType] = useState<MaterialType | ''>(
+    cachedRequirement?.materialType ?? '',
+  )
+  const [color, setColor] = useState<MaterialColor | ''>(cachedRequirement?.color ?? '')
+  const [pattern, setPattern] = useState<MaterialPattern | ''>(cachedRequirement?.pattern ?? '')
+  const [minGrade, setMinGrade] = useState<MaterialGrade | ''>(cachedRequirement?.minGrade ?? '')
+  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>(
+    cachedRequirement?.accessoryColor ?? '',
+  )
+  const [usePointMaterial, setUsePointMaterial] = useState(
+    cachedRequirement?.usePointMaterial ? 'true' : 'false',
+  )
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
@@ -88,7 +103,10 @@ export function DesignRequirementPage() {
         { method: 'POST', body: formData },
       )
     },
-    onSuccess: () => navigate(`/drops/${dropId}/candidates`),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['design-requirement', dropId], data)
+      navigate(`/drops/${dropId}/candidates`)
+    },
   })
 
   if (!dropId) {

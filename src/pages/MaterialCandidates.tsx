@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -12,6 +12,7 @@ import type {
   MaterialCandidateResponse,
   MaterialSelectionRequest,
 } from '@/types/candidate'
+import type { DesignRequirementResponse } from '@/types/drop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,10 +38,27 @@ function accessoryLabel(accessory: AccessoryResponse) {
   return `${accessory.accessoryType} · ${accessory.color}`
 }
 
+// f4 재진입 시 재계산을 건너뛸지 판단하는 기준 — 계산에 실제로 영향을 주는 6개 필드만 비교한다.
+function requirementsEqual(
+  a: DesignRequirementResponse | undefined,
+  b: DesignRequirementResponse | undefined,
+) {
+  if (!a || !b) return false
+  return (
+    a.materialType === b.materialType &&
+    a.color === b.color &&
+    a.pattern === b.pattern &&
+    a.minGrade === b.minGrade &&
+    a.accessoryColor === b.accessoryColor &&
+    a.usePointMaterial === b.usePointMaterial
+  )
+}
+
 export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
 
   const [mainCandidateId, setMainCandidateId] = useState('')
   const [pointCandidateId, setPointCandidateId] = useState('')
@@ -61,9 +79,9 @@ export function MaterialCandidatesPage() {
   const [candidatesResult, setCandidatesResult] = useState<MaterialCandidateListResponse | null>(null)
   const [calcStatus, setCalcStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
 
-  // b9~b11 계산은 항상 "필터링 -> 채점 -> 결과 교체" 흐름이라, GET으로 이전 결과를 먼저
-  // 보여주지 않고 진입 시마다 POST로 최신 디자인 조건 기준 재계산한다. 이전 화면(디자인
-  // 조건 입력)에서 조건을 바꾸고 다시 들어와도 항상 최신 후보를 보게 하기 위함이다.
+  // b9~b11 재계산은 호출될 때마다 실제 OpenAI 호출 + 기존 후보 삭제·재저장을 하는 비용이
+  // 큰 작업이다(백엔드에도 캐싱/멱등성 체크 없음). 그래서 계산 결과와, 그 계산에 쓰인 디자인
+  // 조건의 스냅샷을 같이 캐싱해두고, f4 재진입 시 조건이 그대로면 재계산을 건너뛴다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`, {
@@ -74,18 +92,47 @@ export function MaterialCandidatesPage() {
       setCandidatesResult(data)
       setCalcStatus('success')
       resetSelection()
+      queryClient.setQueryData(['material-candidates', dropId], data)
+      const requirementUsed = queryClient.getQueryData<DesignRequirementResponse>([
+        'design-requirement',
+        dropId,
+      ])
+      if (requirementUsed) {
+        queryClient.setQueryData(
+          ['material-candidates-requirement-snapshot', dropId],
+          requirementUsed,
+        )
+      }
     },
     onError: () => setCalcStatus('error'),
   })
 
-  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가
-  // 중복으로 나가지 않도록 dropId 단위로 한 번만 호출되게 막는다. 이 API는 호출될
-  // 때마다 서버의 이전 결과를 교체해버리므로, 중복 호출되면 화면이 들고 있는
-  // candidateId와 서버에 남은 candidateId가 어긋나 확정 시 404가 날 수 있다.
+  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 중복 호출되지 않도록
+  // dropId 단위로 한 번만 실행되게 막는다. 진입 시마다 무조건 재계산하는 대신, 캐시된
+  // 후보 결과와 그때 쓰인 디자인 조건 스냅샷이 지금 조건과 같으면 재계산 없이 그 결과를
+  // 그대로 재사용한다("다시 계산" 버튼은 이 비교 없이 항상 강제로 재계산함).
   const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (dropId && isAuthenticated && calculatedForDropId.current !== dropId) {
-      calculatedForDropId.current = dropId
+    if (!dropId || !isAuthenticated || calculatedForDropId.current === dropId) return
+    calculatedForDropId.current = dropId
+
+    const cachedCandidates = queryClient.getQueryData<MaterialCandidateListResponse>([
+      'material-candidates',
+      dropId,
+    ])
+    const cachedRequirementSnapshot = queryClient.getQueryData<DesignRequirementResponse>([
+      'material-candidates-requirement-snapshot',
+      dropId,
+    ])
+    const currentRequirement = queryClient.getQueryData<DesignRequirementResponse>([
+      'design-requirement',
+      dropId,
+    ])
+
+    if (cachedCandidates && requirementsEqual(cachedRequirementSnapshot, currentRequirement)) {
+      setCandidatesResult(cachedCandidates)
+      setCalcStatus('success')
+    } else {
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -314,7 +361,10 @@ export function MaterialCandidatesPage() {
           )}
         </CardContent>
         <CardFooter className="justify-between">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
+          <Button
+            variant="secondary"
+            onClick={() => navigate(`/drops/${dropId}/design-requirement`)}
+          >
             이전 단계로
           </Button>
           <Button
