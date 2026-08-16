@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
@@ -36,6 +36,13 @@ export function ProductionScenarioPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
 
+  // calculateMutation.isPending/.data를 화면에서 직접 참조하면, onSuccess는 최신 데이터로
+  // 정상 실행되는데도 그 다음 리렌더가 이전 상태(대기 중)를 계속 보여주는 현상이 있어서
+  // (StrictMode 개발 모드에서 재현됨, MaterialCandidates.tsx와 동일한 원인) onSuccess/onError에서
+  // 직접 로컬 state를 갱신하는 방식으로 우회한다.
+  const [scenariosResult, setScenariosResult] = useState<ProductionScenarioListResponse | null>(null)
+  const [calcStatus, setCalcStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+
   // GET은 계산 이력이 없으면 에러를 던지므로, 이 페이지는 진입 시 항상 POST(재계산)부터 수행한다.
   // (확정된 소재 조합 기준으로 재계산하며, 이전 계산·선택 결과는 서버에서 교체됨)
   const calculateMutation = useMutation({
@@ -43,6 +50,12 @@ export function ProductionScenarioPage() {
       apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`, {
         method: 'POST',
       }),
+    onMutate: () => setCalcStatus('pending'),
+    onSuccess: (data) => {
+      setScenariosResult(data)
+      setCalcStatus('success')
+    },
+    onError: () => setCalcStatus('error'),
   })
 
   // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가 중복으로
@@ -64,16 +77,18 @@ export function ProductionScenarioPage() {
         `/api/drops/${dropId}/production-scenarios/${scenarioId}/select`,
         { method: 'POST' },
       ),
+    onSuccess: (data) => setScenariosResult(data),
+    onError: () => setCalcStatus('error'),
   })
 
-  const data = selectMutation.data ?? calculateMutation.data
+  const data = scenariosResult
   const scenarios = data?.scenarios ?? []
   const headlineScenario = scenarios.find((s) => s.scenarioType === 'MAIN_ONLY') ?? scenarios[0]
   const miniBagQuantity =
     headlineScenario?.items.find((item) => item.productType === 'MINI_BAG')?.quantity ?? 0
 
-  const isLoading = calculateMutation.isPending
-  const hasError = calculateMutation.isError || selectMutation.isError
+  const isLoading = calcStatus === 'pending'
+  const hasError = calcStatus === 'error'
 
   if (!dropId) {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>

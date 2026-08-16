@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { itemsLabel, SCENARIO_TITLE } from '@/pages/ProductionScenario'
+import type {
+  DropConfirmRequest,
+  DropConfirmResponse,
+  DropIntroTextRequest,
+  DropIntroTextResponse,
+} from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,43 +22,23 @@ import { Textarea } from '@/components/ui/textarea'
 // MVP 범위상 템플릿은 고정 "미니백" 하나뿐 (CLAUDE.md 참고)
 const TEMPLATE_NAME = '미니백'
 
-// 실제 AI(Terra) 생성 API가 붙기 전까지, "다시 생성"을 눌렀을 때 매번 같은 문장이
-// 나오지 않도록 몇 가지 문구 변형을 돌아가며 보여준다.
-const INTRO_TEMPLATES: Array<
-  (scenarioLabel: string, itemsSummary: string, utilizationRate: number) => string
-> = [
-  (scenarioLabel, itemsSummary, utilizationRate) =>
-    `next:R.U.N의 이번 Drop은 ${scenarioLabel}을 기반으로 ${itemsSummary}를 제작합니다. ` +
-    `잉여 소재 활용률 ${Math.round(utilizationRate)}%를 달성해, 남은 원단·가죽을 낭비 없이 사용한 한정 컬렉션입니다.`,
-  (scenarioLabel, itemsSummary, utilizationRate) =>
-    `버려질 뻔한 소재가 ${scenarioLabel}으로 다시 태어났습니다. ${itemsSummary} 구성으로, ` +
-    `소재 활용률 ${Math.round(utilizationRate)}%를 기록한 이번 Drop은 MCM 잉여 원단으로만 만든 한정 수량입니다.`,
-  (scenarioLabel, itemsSummary, utilizationRate) =>
-    `${itemsSummary}로 구성된 이번 next:R.U.N Drop, "${scenarioLabel}". ` +
-    `잉여 소재를 ${Math.round(utilizationRate)}%까지 알차게 사용해 완성한, 하나뿐인 리미티드 컬렉션을 소개합니다.`,
-]
-
-function draftIntroText(
-  scenarioLabel: string,
-  itemsSummary: string,
-  utilizationRate: number,
-  variantIndex = 0,
-) {
-  const template = INTRO_TEMPLATES[variantIndex % INTRO_TEMPLATES.length]
-  return template(scenarioLabel, itemsSummary, utilizationRate)
+function apiErrorMessage(error: unknown, fallback: string) {
+  return error instanceof ApiError ? error.message : fallback
 }
 
 export function DropConfirmPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
-  const [introText, setIntroText] = useState('')
-  const [introVariant, setIntroVariant] = useState(0)
-  const [showConfirmNotice, setShowConfirmNotice] = useState(false)
 
-  // b13/b14(Drop 확정 · 소개문 저장) API가 아직 없어서, f6에서 이미 계산·확정된
-  // 제작 시나리오 결과를 GET으로 그대로 조회해 요약 정보로만 사용한다.
-  // (POST는 재계산 + 서버의 기존 선택 결과를 덮어써버리므로 여기서는 쓰면 안 됨)
+  const [name, setName] = useState('')
+  const [expectedProductionDays, setExpectedProductionDays] = useState('')
+  const [introText, setIntroText] = useState('')
+
+  // b13(Drop 확정)이 아직 안 끝났으면 null. 확정 응답에 AI 소개문 초안(b14)까지 같이 온다.
+  const [confirmResult, setConfirmResult] = useState<DropConfirmResponse | null>(null)
+  const [regenerationsRemaining, setRegenerationsRemaining] = useState<number | null>(null)
+
   const scenariosQuery = useQuery({
     queryKey: ['drops', dropId, 'production-scenarios'],
     queryFn: () =>
@@ -65,19 +51,46 @@ export function DropConfirmPage() {
     scenarios.find((scenario) => scenario.selected) ??
     scenarios.find((scenario) => scenario.scenarioId === scenariosQuery.data?.selectedScenarioId)
 
-  useEffect(() => {
-    if (selectedScenario && !introText) {
-      setIntroText(
-        draftIntroText(
-          SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType,
-          itemsLabel(selectedScenario),
-          selectedScenario.materialUtilizationRate,
-          introVariant,
-        ),
-      )
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedScenario])
+  const isConfirmed = confirmResult !== null
+
+  // b13: Drop 확정 (이름·예상 제작기간 저장 + 상태 CONFIRMED 전환 + AI 소개문 초안 생성)
+  const confirmMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<DropConfirmResponse>(`/api/drops/${dropId}/confirm`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name,
+          expectedProductionDays: Number(expectedProductionDays),
+        } satisfies DropConfirmRequest),
+      }),
+    onSuccess: (data) => {
+      setConfirmResult(data)
+      setRegenerationsRemaining(data.regenerationsRemaining)
+      if (data.introText) setIntroText(data.introText)
+    },
+  })
+
+  // b14: AI 소개문 재생성 (b13 최초 생성 포함 Drop당 총 6회)
+  const regenerateMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<DropIntroTextResponse>(`/api/drops/${dropId}/intro-text`, { method: 'POST' }),
+    onSuccess: (data) => {
+      setIntroText(data.introText)
+      setRegenerationsRemaining(data.regenerationsRemaining)
+    },
+  })
+
+  // b14: 담당자가 고친 소개문 최종본 저장 (AI 재호출 아님, 횟수 제한과 무관)
+  const saveIntroMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<DropIntroTextResponse>(`/api/drops/${dropId}/intro-text`, {
+        method: 'PATCH',
+        body: JSON.stringify({ introText } satisfies DropIntroTextRequest),
+      }),
+    onSuccess: (data) => {
+      setRegenerationsRemaining(data.regenerationsRemaining)
+    },
+  })
 
   const isLoading = scenariosQuery.isLoading
   const hasError = scenariosQuery.isError
@@ -85,6 +98,13 @@ export function DropConfirmPage() {
   if (!dropId) {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
   }
+
+  const canConfirm =
+    !isConfirmed &&
+    Boolean(selectedScenario) &&
+    name.trim() !== '' &&
+    expectedProductionDays.trim() !== '' &&
+    Number(expectedProductionDays) > 0
 
   return (
     <CenteredPage>
@@ -113,62 +133,96 @@ export function DropConfirmPage() {
                   readOnly
                   value={SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType}
                 />
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Drop 이름"
+                  readOnly={isConfirmed}
+                />
+                <Input
+                  type="number"
+                  min={1}
+                  value={expectedProductionDays}
+                  onChange={(event) => setExpectedProductionDays(event.target.value)}
+                  placeholder="예상 제작기간 (일)"
+                  readOnly={isConfirmed}
+                />
+                {confirmMutation.isError && (
+                  <FormMessage>
+                    {apiErrorMessage(confirmMutation.error, 'Drop 확정에 실패했습니다. 다시 시도해주세요.')}
+                  </FormMessage>
+                )}
               </>
             )}
           </PanelSection>
 
           <PanelSection title="소개문 초안">
-            <Textarea
-              value={introText}
-              onChange={(event) => setIntroText(event.target.value)}
-              placeholder="소개문 초안이 여기에 표시됩니다."
-              className="min-h-28"
-            />
-            <div className="flex justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!selectedScenario}
-                onClick={() => {
-                  if (!selectedScenario) return
-                  const nextVariant = introVariant + 1
-                  setIntroVariant(nextVariant)
-                  setIntroText(
-                    draftIntroText(
-                      SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType,
-                      itemsLabel(selectedScenario),
-                      selectedScenario.materialUtilizationRate,
-                      nextVariant,
-                    ),
-                  )
-                }}
-              >
-                AI로 다시 생성
-              </Button>
-            </div>
-            <p className="text-[10.5px] text-muted-foreground">
-              실제 AI(Terra) 생성 API가 아직 연결되지 않아 임시로 만든 초안입니다. 최종 승인 전 직접 다듬어주세요.
-            </p>
+            {!isConfirmed ? (
+              <p className="py-2 text-[11.5px] text-muted-foreground">
+                Drop을 확정하면 AI가 소개문 초안을 자동으로 생성합니다.
+              </p>
+            ) : (
+              <>
+                <Textarea
+                  value={introText}
+                  onChange={(event) => setIntroText(event.target.value)}
+                  placeholder="소개문 초안이 여기에 표시됩니다."
+                  className="min-h-28"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] text-muted-foreground">
+                    AI 재생성 남은 횟수: {regenerationsRemaining ?? 0}회
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={regenerateMutation.isPending || (regenerationsRemaining ?? 0) <= 0}
+                      onClick={() => regenerateMutation.mutate()}
+                    >
+                      {regenerateMutation.isPending ? '생성 중...' : 'AI로 다시 생성'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={saveIntroMutation.isPending || !introText.trim()}
+                      onClick={() => saveIntroMutation.mutate()}
+                    >
+                      {saveIntroMutation.isPending ? '저장 중...' : '저장'}
+                    </Button>
+                  </div>
+                </div>
+                {regenerateMutation.isError && (
+                  <FormMessage>
+                    {apiErrorMessage(regenerateMutation.error, 'AI 재생성에 실패했습니다. 다시 시도해주세요.')}
+                  </FormMessage>
+                )}
+                {saveIntroMutation.isError && (
+                  <FormMessage>
+                    {apiErrorMessage(saveIntroMutation.error, '저장에 실패했습니다. 다시 시도해주세요.')}
+                  </FormMessage>
+                )}
+                {saveIntroMutation.isSuccess && !saveIntroMutation.isPending && (
+                  <p className="text-[10.5px] text-muted-foreground">저장되었습니다.</p>
+                )}
+              </>
+            )}
           </PanelSection>
         </CardContent>
         <CardFooter className="justify-between">
           <Button variant="secondary" onClick={() => navigate(-1)}>
             이전 단계로
           </Button>
-          <Button
-            disabled={!selectedScenario}
-            onClick={() => setShowConfirmNotice(true)}
-          >
-            Drop 확정하기
-          </Button>
+          {isConfirmed ? (
+            <Button disabled>확정 완료</Button>
+          ) : (
+            <Button
+              disabled={!canConfirm || confirmMutation.isPending}
+              onClick={() => confirmMutation.mutate()}
+            >
+              {confirmMutation.isPending ? '확정 중...' : 'Drop 확정하기'}
+            </Button>
+          )}
         </CardFooter>
-        {showConfirmNotice && (
-          <div className="px-(--card-spacing) pb-(--card-spacing)">
-            <FormMessage variant="muted">
-              Drop 확정 API(b13/b14)가 아직 준비되지 않았습니다. 소개문 내용은 이 화면에만 임시로 보관됩니다.
-            </FormMessage>
-          </div>
-        )}
       </Card>
     </CenteredPage>
   )

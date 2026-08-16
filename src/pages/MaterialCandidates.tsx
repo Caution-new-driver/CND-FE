@@ -54,6 +54,13 @@ export function MaterialCandidatesPage() {
     setSelectedAccessoryIds({})
   }
 
+  // calculateMutation.isPending/.data를 화면에서 직접 참조하면, onSuccess는 최신 데이터로
+  // 정상 실행되는데도 그 다음 리렌더가 이전 상태(대기 중)를 계속 보여주는 현상이 있어서
+  // (StrictMode 개발 모드에서 재현됨) onSuccess/onMutate/onError에서 직접 로컬 state를
+  // 갱신하는 방식으로 우회한다.
+  const [candidatesResult, setCandidatesResult] = useState<MaterialCandidateListResponse | null>(null)
+  const [calcStatus, setCalcStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+
   // b9~b11 계산은 항상 "필터링 -> 채점 -> 결과 교체" 흐름이라, GET으로 이전 결과를 먼저
   // 보여주지 않고 진입 시마다 POST로 최신 디자인 조건 기준 재계산한다. 이전 화면(디자인
   // 조건 입력)에서 조건을 바꾸고 다시 들어와도 항상 최신 후보를 보게 하기 위함이다.
@@ -62,7 +69,13 @@ export function MaterialCandidatesPage() {
       apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`, {
         method: 'POST',
       }),
-    onSuccess: () => resetSelection(),
+    onMutate: () => setCalcStatus('pending'),
+    onSuccess: (data) => {
+      setCandidatesResult(data)
+      setCalcStatus('success')
+      resetSelection()
+    },
+    onError: () => setCalcStatus('error'),
   })
 
   // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가
@@ -79,8 +92,8 @@ export function MaterialCandidatesPage() {
   }, [dropId, isAuthenticated])
 
   const candidates = useMemo(
-    () => calculateMutation.data?.candidates ?? [],
-    [calculateMutation.data],
+    () => candidatesResult?.candidates ?? [],
+    [candidatesResult],
   )
 
   // AI 추천 1순위를 기본 선택값으로 잡아둔다
@@ -133,8 +146,8 @@ export function MaterialCandidatesPage() {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>
   }
 
-  const isLoadingCandidates = calculateMutation.isPending
-  const hasCandidateError = calculateMutation.isError
+  const isLoadingCandidates = calcStatus === 'pending'
+  const hasCandidateError = calcStatus === 'error'
 
   return (
     <CenteredPage>
@@ -150,9 +163,9 @@ export function MaterialCandidatesPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() => calculateMutation.mutate()}
-                disabled={calculateMutation.isPending}
+                disabled={isLoadingCandidates}
               >
-                {calculateMutation.isPending ? '재계산 중...' : '다시 계산'}
+                {isLoadingCandidates ? '재계산 중...' : '다시 계산'}
               </Button>
             }
           >
@@ -306,7 +319,7 @@ export function MaterialCandidatesPage() {
           </Button>
           <Button
             onClick={() => confirmMutation.mutate()}
-            disabled={!mainCandidateId || calculateMutation.isPending || confirmMutation.isPending}
+            disabled={!mainCandidateId || isLoadingCandidates || confirmMutation.isPending}
           >
             {confirmMutation.isPending ? '처리 중...' : '다음: 제작 가능 수량 계산'}
           </Button>
