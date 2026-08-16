@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import type { ProductionScenarioListResponse, ProductionScenarioResponse } from '@/types/production'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +34,7 @@ export function itemsLabel(scenario: ProductionScenarioResponse) {
 export function ProductionScenarioPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
 
   // GET은 계산 이력이 없으면 에러를 던지므로, 이 페이지는 진입 시 항상 POST(재계산)부터 수행한다.
   // (확정된 소재 조합 기준으로 재계산하며, 이전 계산·선택 결과는 서버에서 교체됨)
@@ -45,14 +47,16 @@ export function ProductionScenarioPage() {
 
   // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가 중복으로
   // 나가지 않도록 dropId 단위로 한 번만 호출되게 막는다 (MaterialCandidates.tsx와 동일한 이유).
+  // isAuthenticated 체크는 로그인 팝업이 떠 있는 동안(배경 화면이 이미 마운트된 상태) 토큰 없이
+  // 먼저 요청이 나가는 걸 막기 위함.
   const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (dropId && calculatedForDropId.current !== dropId) {
+    if (dropId && isAuthenticated && calculatedForDropId.current !== dropId) {
       calculatedForDropId.current = dropId
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dropId])
+  }, [dropId, isAuthenticated])
 
   const selectMutation = useMutation({
     mutationFn: (scenarioId: string) =>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { itemsLabel, SCENARIO_TITLE } from '@/pages/ProductionScenario'
 import type { ProductionScenarioListResponse } from '@/types/production'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,7 @@ function draftIntroText(
 export function DropConfirmPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const [introText, setIntroText] = useState('')
   const [introVariant, setIntroVariant] = useState(0)
   const [showConfirmNotice, setShowConfirmNotice] = useState(false)
@@ -55,7 +57,7 @@ export function DropConfirmPage() {
     queryKey: ['drops', dropId, 'production-scenarios'],
     queryFn: () =>
       apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`),
-    enabled: Boolean(dropId),
+    enabled: Boolean(dropId) && isAuthenticated,
   })
 
   const scenarios = scenariosQuery.data?.scenarios ?? []

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { MATERIAL_COLOR_LABEL, MATERIAL_TYPE_LABEL } from '@/lib/material-options'
 import type {
@@ -39,6 +40,7 @@ function accessoryLabel(accessory: AccessoryResponse) {
 export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
 
   const [mainCandidateId, setMainCandidateId] = useState('')
   const [pointCandidateId, setPointCandidateId] = useState('')
@@ -69,12 +71,12 @@ export function MaterialCandidatesPage() {
   // candidateId와 서버에 남은 candidateId가 어긋나 확정 시 404가 날 수 있다.
   const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (dropId && calculatedForDropId.current !== dropId) {
+    if (dropId && isAuthenticated && calculatedForDropId.current !== dropId) {
       calculatedForDropId.current = dropId
       calculateMutation.mutate()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dropId])
+  }, [dropId, isAuthenticated])
 
   const candidates = useMemo(
     () => calculateMutation.data?.candidates ?? [],
@@ -91,6 +93,7 @@ export function MaterialCandidatesPage() {
   const accessoriesQuery = useQuery({
     queryKey: ['accessories'],
     queryFn: () => apiFetch<AccessoryResponse[]>('/api/accessories'),
+    enabled: isAuthenticated,
   })
 
   const accessoryGroups = useMemo(() => {
