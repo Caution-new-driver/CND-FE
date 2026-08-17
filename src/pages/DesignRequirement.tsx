@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { readCache, writeCache } from '@/lib/persisted-cache'
 import type {
-  AccessoryColor,
   DesignRequirementResponse,
   MaterialColor,
   MaterialGrade,
@@ -53,12 +52,6 @@ const PATTERN_OPTIONS: { value: MaterialPattern; label: string }[] = [
 
 const MIN_GRADE_OPTIONS: MaterialGrade[] = ['A', 'B', 'C']
 
-const ACCESSORY_COLOR_OPTIONS: { value: AccessoryColor; label: string }[] = [
-  { value: 'GOLD', label: '골드' },
-  { value: 'SILVER', label: '실버' },
-  { value: 'BLACK', label: '블랙' },
-]
-
 function optionLabel(options: readonly { value: string; label: string }[], value: string) {
   return options.find((option) => option.value === value)?.label
 }
@@ -81,9 +74,6 @@ export function DesignRequirementPage() {
   const [color, setColor] = useState<MaterialColor | ''>(cachedRequirement?.color ?? '')
   const [pattern, setPattern] = useState<MaterialPattern | ''>(cachedRequirement?.pattern ?? '')
   const [minGrade, setMinGrade] = useState<MaterialGrade | ''>(cachedRequirement?.minGrade ?? '')
-  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>(
-    cachedRequirement?.accessoryColor ?? '',
-  )
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
@@ -92,7 +82,6 @@ export function DesignRequirementPage() {
       if (color) formData.append('color', color)
       if (pattern) formData.append('pattern', pattern)
       if (minGrade) formData.append('minGrade', minGrade)
-      if (accessoryColor) formData.append('accessoryColor', accessoryColor)
 
       return apiFetch<DesignRequirementResponse>(
         `/api/drops/${dropId}/design-requirement`,
@@ -175,25 +164,6 @@ export function DesignRequirementPage() {
                     {MIN_GRADE_OPTIONS.map((grade) => (
                       <SelectItem key={grade} value={grade}>
                         {grade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="부자재 색상" htmlFor="accessoryColor" className="[&_label]:text-xs [&_label]:text-muted-foreground">
-                <Select
-                  value={accessoryColor}
-                  onValueChange={(value) => setAccessoryColor((value as AccessoryColor) ?? '')}
-                >
-                  <SelectTrigger id="accessoryColor" className="w-full">
-                    <SelectValue placeholder="선택">
-                      {optionLabel(ACCESSORY_COLOR_OPTIONS, accessoryColor)}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACCESSORY_COLOR_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

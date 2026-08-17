@@ -39,7 +39,7 @@ function accessoryLabel(accessory: AccessoryResponse) {
   return `${accessory.accessoryType} · ${accessory.color}`
 }
 
-// f4 재진입 시 재계산을 건너뛸지 판단하는 기준 — 계산에 실제로 영향을 주는 5개 필드만 비교한다.
+// f4 재진입 시 재계산을 건너뛸지 판단하는 기준 — 계산에 실제로 영향을 주는 4개 필드만 비교한다.
 function requirementsEqual(
   a: DesignRequirementResponse | undefined,
   b: DesignRequirementResponse | undefined,
@@ -49,8 +49,7 @@ function requirementsEqual(
     a.materialType === b.materialType &&
     a.color === b.color &&
     a.pattern === b.pattern &&
-    a.minGrade === b.minGrade &&
-    a.accessoryColor === b.accessoryColor
+    a.minGrade === b.minGrade
   )
 }
 

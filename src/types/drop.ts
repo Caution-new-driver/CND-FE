@@ -41,7 +41,6 @@ export interface DesignRequirementResponse {
   color: MaterialColor | null
   pattern: MaterialPattern | null
   minGrade: MaterialGrade | null
-  accessoryColor: AccessoryColor | null
 }
 
 // PATCH /api/drops/{dropId}/confirm 요청 (b13)
