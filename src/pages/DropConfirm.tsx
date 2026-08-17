@@ -224,7 +224,7 @@ export function DropConfirmPage() {
             </>
           ) : (
             <>
-              <Button variant="secondary" onClick={() => navigate(-1)}>
+              <Button variant="secondary" onClick={() => navigate(`/drops/${dropId}/production-scenario`)}>
                 이전 단계로
               </Button>
               <Button

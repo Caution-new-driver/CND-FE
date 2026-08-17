@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { readCache, writeCache } from '@/lib/persisted-cache'
 import type {
   AccessoryColor,
   DesignRequirementResponse,
@@ -65,15 +66,14 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
-  // f4에서 "이전 단계로"로 돌아왔을 때 방금 저장했던 조건이 폼에 남아있도록, 저장 mutation의
-  // onSuccess가 채워두는 캐시를 읽어온다. 백엔드에 조회용 GET이 없어서 실제로 fetch하진
-  // 않고(queryFn: skipToken → 항상 비활성) 이미 캐시에 값이 있으면 그것만 사용한다.
-  const cachedRequirement = useQuery<DesignRequirementResponse>({
-    queryKey: ['design-requirement', dropId],
-    queryFn: skipToken,
-  }).data
+  // f4에서 "이전 단계로"로 돌아왔을 때, 또는 새로고침 후에도 방금 저장했던 조건이 폼에
+  // 남아있도록 저장 mutation의 onSuccess가 채워두는 값을 읽어온다. 백엔드에 조회용 GET이
+  // 없어서 이 localStorage 캐시가 유일한 사본이다(TanStack Query 인메모리 캐시는
+  // 새로고침하면 사라져서 쓸 수 없음).
+  const cachedRequirement = dropId
+    ? readCache<DesignRequirementResponse>(`design-requirement:${dropId}`)
+    : undefined
 
   const [materialType, setMaterialType] = useState<MaterialType | ''>(
     cachedRequirement?.materialType ?? '',
@@ -104,7 +104,7 @@ export function DesignRequirementPage() {
       )
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['design-requirement', dropId], data)
+      writeCache(`design-requirement:${dropId}`, data)
       navigate(`/drops/${dropId}/candidates`)
     },
   })

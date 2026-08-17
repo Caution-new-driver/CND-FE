@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { readCache, writeCache } from '@/lib/persisted-cache'
 import { cn } from '@/lib/utils'
 import { MATERIAL_COLOR_LABEL, MATERIAL_TYPE_LABEL } from '@/lib/material-options'
 import type {
@@ -58,7 +59,6 @@ export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
-  const queryClient = useQueryClient()
 
   const [mainCandidateId, setMainCandidateId] = useState('')
   const [pointCandidateId, setPointCandidateId] = useState('')
@@ -82,6 +82,8 @@ export function MaterialCandidatesPage() {
   // b9~b11 재계산은 호출될 때마다 실제 OpenAI 호출 + 기존 후보 삭제·재저장을 하는 비용이
   // 큰 작업이다(백엔드에도 캐싱/멱등성 체크 없음). 그래서 계산 결과와, 그 계산에 쓰인 디자인
   // 조건의 스냅샷을 같이 캐싱해두고, f4 재진입 시 조건이 그대로면 재계산을 건너뛴다.
+  // TanStack Query 인메모리 캐시는 새로고침하면 사라져서(그러면 매번 강제 재계산하게 됨)
+  // localStorage(persisted-cache)에 저장한다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<MaterialCandidateListResponse>(`/api/drops/${dropId}/material-candidates`, {
@@ -92,16 +94,12 @@ export function MaterialCandidatesPage() {
       setCandidatesResult(data)
       setCalcStatus('success')
       resetSelection()
-      queryClient.setQueryData(['material-candidates', dropId], data)
-      const requirementUsed = queryClient.getQueryData<DesignRequirementResponse>([
-        'design-requirement',
-        dropId,
-      ])
+      writeCache(`material-candidates:${dropId}`, data)
+      const requirementUsed = readCache<DesignRequirementResponse>(
+        `design-requirement:${dropId}`,
+      )
       if (requirementUsed) {
-        queryClient.setQueryData(
-          ['material-candidates-requirement-snapshot', dropId],
-          requirementUsed,
-        )
+        writeCache(`material-candidates-requirement-snapshot:${dropId}`, requirementUsed)
       }
     },
     onError: () => setCalcStatus('error'),
@@ -116,18 +114,15 @@ export function MaterialCandidatesPage() {
     if (!dropId || !isAuthenticated || calculatedForDropId.current === dropId) return
     calculatedForDropId.current = dropId
 
-    const cachedCandidates = queryClient.getQueryData<MaterialCandidateListResponse>([
-      'material-candidates',
-      dropId,
-    ])
-    const cachedRequirementSnapshot = queryClient.getQueryData<DesignRequirementResponse>([
-      'material-candidates-requirement-snapshot',
-      dropId,
-    ])
-    const currentRequirement = queryClient.getQueryData<DesignRequirementResponse>([
-      'design-requirement',
-      dropId,
-    ])
+    const cachedCandidates = readCache<MaterialCandidateListResponse>(
+      `material-candidates:${dropId}`,
+    )
+    const cachedRequirementSnapshot = readCache<DesignRequirementResponse>(
+      `material-candidates-requirement-snapshot:${dropId}`,
+    )
+    const currentRequirement = readCache<DesignRequirementResponse>(
+      `design-requirement:${dropId}`,
+    )
 
     if (cachedCandidates && requirementsEqual(cachedRequirementSnapshot, currentRequirement)) {
       setCandidatesResult(cachedCandidates)

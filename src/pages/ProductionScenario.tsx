@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import type { ProductionScenarioListResponse, ProductionScenarioResponse } from '@/types/production'
@@ -43,8 +43,11 @@ export function ProductionScenarioPage() {
   const [scenariosResult, setScenariosResult] = useState<ProductionScenarioListResponse | null>(null)
   const [calcStatus, setCalcStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
 
-  // GET은 계산 이력이 없으면 에러를 던지므로, 이 페이지는 진입 시 항상 POST(재계산)부터 수행한다.
-  // (확정된 소재 조합 기준으로 재계산하며, 이전 계산·선택 결과는 서버에서 교체됨)
+  // 재계산(POST)은 확정된 소재 조합 기준으로 다시 계산하며, 이전 계산·선택 결과를 서버에서
+  // 통째로 교체한다(선택 정보까지 삭제됨). 그래서 F7에서 "이전 단계로"로 돌아오는 등
+  // 재마운트될 때마다 무조건 재계산하면 방금 선택한 제작안이 사라진다. 진입 시에는 먼저
+  // GET으로 이미 저장된 계산 결과를 그대로 재사용하고, 계산 이력이 없을 때(409)만 최초
+  // 계산(POST)을 수행한다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`, {
@@ -58,15 +61,35 @@ export function ProductionScenarioPage() {
     onError: () => setCalcStatus('error'),
   })
 
-  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 재계산 POST가 중복으로
-  // 나가지 않도록 dropId 단위로 한 번만 호출되게 막는다 (MaterialCandidates.tsx와 동일한 이유).
+  // StrictMode(개발 모드)에서 이 effect가 두 번 연달아 실행돼도 중복 요청이 나가지 않도록
+  // dropId 단위로 한 번만 실행되게 막는다 (MaterialCandidates.tsx와 동일한 이유).
   // isAuthenticated 체크는 로그인 팝업이 떠 있는 동안(배경 화면이 이미 마운트된 상태) 토큰 없이
   // 먼저 요청이 나가는 걸 막기 위함.
   const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (dropId && isAuthenticated && calculatedForDropId.current !== dropId) {
-      calculatedForDropId.current = dropId
-      calculateMutation.mutate()
+    if (!dropId || !isAuthenticated || calculatedForDropId.current === dropId) return
+    calculatedForDropId.current = dropId
+
+    let cancelled = false
+    setCalcStatus('pending')
+    apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`)
+      .then((data) => {
+        if (cancelled) return
+        setScenariosResult(data)
+        setCalcStatus('success')
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 409) {
+          // 아직 계산된 적 없음 -> 최초 계산
+          calculateMutation.mutate()
+        } else {
+          setCalcStatus('error')
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropId, isAuthenticated])
@@ -181,7 +204,7 @@ export function ProductionScenarioPage() {
           )}
         </CardContent>
         <CardFooter className="justify-between">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
+          <Button variant="secondary" onClick={() => navigate(`/drops/${dropId}/candidates`)}>
             이전 단계로
           </Button>
           <Button
