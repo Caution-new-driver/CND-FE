@@ -33,3 +33,12 @@ export interface MaterialResponse {
   createdAt: string
   updatedAt: string
 }
+
+// POST /api/materials/ai-tag-preview 응답 — 소재를 저장하기 전, 사진만으로 미리 받는 AI 태깅 결과
+export interface MaterialAiTagResult {
+  color: MaterialColor
+  pattern: MaterialPattern
+  texture: string
+  aiConfidence: number
+  surfaceNotes: string
+}

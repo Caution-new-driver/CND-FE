@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import type { MaterialResponse } from '@/types/material'
+import type { MaterialAiTagResult, MaterialResponse } from '@/types/material'
 import {
   MATERIAL_COLOR_LABEL,
   MATERIAL_GRADE_OPTIONS,
@@ -89,9 +89,6 @@ export function MaterialRegistrationPage() {
   const [flexibility, setFlexibility] = useState('')
   const [quantity, setQuantity] = useState('')
 
-  // 방금 등록 + AI 태깅까지 끝난 소재 (AI 태깅 결과 섹션에 표시)
-  const [lastTagged, setLastTagged] = useState<MaterialResponse | null>(null)
-
   // 등록된 소재 목록 수정 모드 — x 버튼으로 실제 DELETE 호출
   const [isEditingList, setIsEditingList] = useState(false)
 
@@ -112,21 +109,47 @@ export function MaterialRegistrationPage() {
     },
   })
 
-  // AI 태깅(POST /api/materials/{id}/ai-tag) — 등록과는 별도 mutation.
-  // 이게 실패해도 소재는 이미 저장돼 있으므로 등록 실패로 취급하지 않는다.
-  const tagMutation = useMutation({
-    mutationFn: (materialId: string) =>
-      apiFetch<MaterialResponse>(`/api/materials/${materialId}/ai-tag`, {
+  // AI 태깅 미리보기(POST /api/materials/ai-tag-preview) — 소재를 등록하기 전,
+  // 사진을 올리자마자 호출한다. 소재를 저장하지 않고 태깅 결과만 받아온다.
+  const previewMutation = useMutation({
+    mutationFn: ({ full, closeup }: { full: File; closeup: File | null }) => {
+      const formData = new FormData()
+      formData.append('imageFull', full)
+      if (closeup) formData.append('imageCloseup', closeup)
+      return apiFetch<MaterialAiTagResult>('/api/materials/ai-tag-preview', {
         method: 'POST',
-      }),
-    onSuccess: (material) => {
-      setLastTagged(material)
+        body: formData,
+      })
+    },
+  })
+
+  // 등록 직후 AI 필드를 확정하는 mutation. 미리보기 결과가 이미 있으면 그 값을 그대로
+  // PATCH로 반영해서(OpenAI 재호출 없음) 붙이고, 없으면(미리보기가 실패했거나 아직 안 끝났으면)
+  // 예전처럼 POST /api/materials/{id}/ai-tag로 새로 태깅한다.
+  // 이게 실패해도 소재는 이미 저장돼 있으므로 등록 실패로 취급하지 않는다.
+  const finalizeTagMutation = useMutation({
+    mutationFn: ({ materialId, preview }: { materialId: string; preview: MaterialAiTagResult | null }) => {
+      if (!preview) {
+        return apiFetch<MaterialResponse>(`/api/materials/${materialId}/ai-tag`, { method: 'POST' })
+      }
+      const formData = new FormData()
+      formData.append('color', preview.color)
+      formData.append('pattern', preview.pattern)
+      formData.append('texture', preview.texture)
+      formData.append('aiConfidence', String(preview.aiConfidence))
+      formData.append('surfaceNotes', preview.surfaceNotes)
+      return apiFetch<MaterialResponse>(`/api/materials/${materialId}`, {
+        method: 'PATCH',
+        body: formData,
+      })
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materials'] })
     },
   })
 
   // 등록(POST /api/materials) — 성공하면 바로 draft를 비우고(중복 등록 방지),
-  // 이어서 AI 태깅을 별도로 요청한다.
+  // 이어서 AI 태깅 확정을 별도로 요청한다.
   const createMutation = useMutation({
     mutationFn: () => {
       const formData = new FormData()
@@ -150,6 +173,9 @@ export function MaterialRegistrationPage() {
     onSuccess: (material) => {
       queryClient.invalidateQueries({ queryKey: ['materials'] })
 
+      // 등록 시점에 이미 받아둔 AI 미리보기 결과를 그대로 넘긴다 (없으면 finalizeTagMutation이 알아서 새로 태깅).
+      const preview = previewMutation.data ?? null
+
       // 등록은 이미 끝났으니 AI 태깅 성공 여부와 무관하게 draft부터 비운다.
       if (imageFullPreview) URL.revokeObjectURL(imageFullPreview)
       if (imageCloseupPreview) URL.revokeObjectURL(imageCloseupPreview)
@@ -166,8 +192,9 @@ export function MaterialRegistrationPage() {
       setHandFeel('')
       setFlexibility('')
       setQuantity('')
+      previewMutation.reset()
 
-      tagMutation.mutate(material.id)
+      finalizeTagMutation.mutate({ materialId: material.id, preview })
     },
   })
 
@@ -175,12 +202,14 @@ export function MaterialRegistrationPage() {
     if (imageFullPreview) URL.revokeObjectURL(imageFullPreview)
     setImageFull(file)
     setImageFullPreview(URL.createObjectURL(file))
+    previewMutation.mutate({ full: file, closeup: imageCloseup })
   }
 
   const handleImageCloseupSelect = (file: File) => {
     if (imageCloseupPreview) URL.revokeObjectURL(imageCloseupPreview)
     setImageCloseup(file)
     setImageCloseupPreview(URL.createObjectURL(file))
+    if (imageFull) previewMutation.mutate({ full: imageFull, closeup: file })
   }
 
   const canRegister =
@@ -251,41 +280,46 @@ export function MaterialRegistrationPage() {
           </PanelSection>
 
           <PanelSection title="AI 태깅 결과" titleExtra={<Badge variant="secondary">AI 자동</Badge>}>
-            {tagMutation.isPending ? (
+            {previewMutation.isPending || finalizeTagMutation.isPending ? (
               <p className="flex items-center gap-1 py-2 text-[11.5px] text-muted-foreground">
                 <Loader2 className="size-3 animate-spin" /> AI 분석 중...
               </p>
-            ) : lastTagged ? (
+            ) : previewMutation.data ? (
               <>
                 <div className="flex gap-3">
                   <div className="flex-1 rounded-lg border border-input px-2.5 py-1.5 text-[12px]">
-                    {lastTagged.color ? MATERIAL_COLOR_LABEL[lastTagged.color] : '-'}
+                    {MATERIAL_COLOR_LABEL[previewMutation.data.color]}
                   </div>
                   <div className="flex-1 rounded-lg border border-input px-2.5 py-1.5 text-[12px]">
-                    {lastTagged.pattern ? MATERIAL_PATTERN_LABEL[lastTagged.pattern] : '-'}
+                    {MATERIAL_PATTERN_LABEL[previewMutation.data.pattern]}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 rounded-lg border border-input px-2.5 py-1.5 text-[12px]">
-                    {lastTagged.texture || '-'}
+                    {previewMutation.data.texture || '-'}
                   </div>
                   <div className="flex flex-1 flex-col gap-1">
                     <span className="text-[11px] text-muted-foreground">신뢰도</span>
                     <Badge variant="secondary" className="w-fit">
-                      {formatConfidence(lastTagged.aiConfidence)}
+                      {formatConfidence(previewMutation.data.aiConfidence)}
                     </Badge>
                   </div>
                 </div>
-                {lastTagged.surfaceNotes && (
-                  <p className="text-[11px] text-muted-foreground">특이사항: {lastTagged.surfaceNotes}</p>
+                {previewMutation.data.surfaceNotes && (
+                  <p className="text-[11px] text-muted-foreground">
+                    특이사항: {previewMutation.data.surfaceNotes}
+                  </p>
                 )}
               </>
             ) : (
               <p className="py-2 text-[11.5px] text-muted-foreground">
-                소재를 등록하면 AI 태깅 결과가 여기 표시됩니다.
+                소재 사진을 업로드하면 AI 태깅 결과가 여기 표시됩니다.
               </p>
             )}
-            {tagMutation.isError && (
+            {previewMutation.isError && (
+              <FormMessage>AI 분석에 실패했습니다. 사진을 다시 업로드해주세요.</FormMessage>
+            )}
+            {finalizeTagMutation.isError && (
               <FormMessage>
                 AI 분석에 실패했습니다. 소재는 이미 등록되었으니, 필요하면 목록에서 다시 시도해주세요.
               </FormMessage>
