@@ -65,21 +65,22 @@ export function ProductionScenarioPage() {
   // dropId 단위로 한 번만 실행되게 막는다 (MaterialCandidates.tsx와 동일한 이유).
   // isAuthenticated 체크는 로그인 팝업이 떠 있는 동안(배경 화면이 이미 마운트된 상태) 토큰 없이
   // 먼저 요청이 나가는 걸 막기 위함.
+  // (cleanup에서 취소 플래그를 두면 StrictMode의 mount→cleanup→remount 순서상 첫 번째
+  // 실행의 fetch 결과가 cleanup으로 취소되고, 두 번째 실행은 위 ref 가드에 막혀 아무 것도
+  // 하지 않아 calcStatus가 'pending'에 멈춰버린다 — ref 가드가 이미 중복 호출을 막으므로
+  // 취소 플래그는 두지 않는다.)
   const calculatedForDropId = useRef<string | null>(null)
   useEffect(() => {
     if (!dropId || !isAuthenticated || calculatedForDropId.current === dropId) return
     calculatedForDropId.current = dropId
 
-    let cancelled = false
     setCalcStatus('pending')
     apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`)
       .then((data) => {
-        if (cancelled) return
         setScenariosResult(data)
         setCalcStatus('success')
       })
       .catch((error: unknown) => {
-        if (cancelled) return
         if (error instanceof ApiError && error.status === 409) {
           // 아직 계산된 적 없음 -> 최초 계산
           calculateMutation.mutate()
@@ -87,21 +88,22 @@ export function ProductionScenarioPage() {
           setCalcStatus('error')
         }
       })
-
-    return () => {
-      cancelled = true
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropId, isAuthenticated])
 
+  // 선택 실패는 calcStatus(초기 로딩용)와 분리된 별도 state로 추적한다. 같이 쓰면
+  // 이미 정상 로드된 제작안 비교 화면 전체가 "선택 실패" 때문에 에러 화면으로 가려지고,
+  // 재시도가 성공해도 calcStatus가 'error'에 남아있어 계속 가려진 채로 남는 문제가 있었다.
+  const [selectError, setSelectError] = useState(false)
   const selectMutation = useMutation({
     mutationFn: (scenarioId: string) =>
       apiFetch<ProductionScenarioListResponse>(
         `/api/drops/${dropId}/production-scenarios/${scenarioId}/select`,
         { method: 'POST' },
       ),
+    onMutate: () => setSelectError(false),
     onSuccess: (data) => setScenariosResult(data),
-    onError: () => setCalcStatus('error'),
+    onError: () => setSelectError(true),
   })
 
   const data = scenariosResult
@@ -158,6 +160,10 @@ export function ProductionScenarioPage() {
               </div>
 
               <p className="text-[12.5px] font-bold">제작안 비교</p>
+
+              {selectError && (
+                <FormMessage>제작안 선택에 실패했습니다. 다시 시도해주세요.</FormMessage>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 {scenarios.map((scenario) => {
