@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import {
   Dialog,
   DialogContent,
@@ -232,7 +233,8 @@ export function MaterialRegistrationPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-4xl">
+      <FlowFrame activeStep={1} maxWidthClassName="max-w-4xl">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>소재 등록 &amp; AI 태깅 확인</CardTitle>
         </CardHeader>
@@ -533,6 +535,7 @@ export function MaterialRegistrationPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }

@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 import { PanelSection } from '@/components/ui/panel-section'
 import {
@@ -191,7 +192,8 @@ export function MaterialCandidatesPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
+      <FlowFrame activeStep={4} dropId={dropId}>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>AI 추천 후보 확인</CardTitle>
         </CardHeader>
@@ -354,10 +356,7 @@ export function MaterialCandidatesPage() {
           )}
         </CardContent>
         <CardFooter className="justify-between">
-          <Button
-            variant="secondary"
-            onClick={() => navigate(`/drops/${dropId}/design-requirement`)}
-          >
+          <Button onClick={() => navigate(`/drops/${dropId}/design-requirement`)}>
             이전 단계로
           </Button>
           <Button
@@ -368,6 +367,7 @@ export function MaterialCandidatesPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }
