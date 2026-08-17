@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { readCache, writeCache } from '@/lib/persisted-cache'
 import type {
   AccessoryColor,
   DesignRequirementResponse,
@@ -64,13 +65,28 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
+  const navigate = useNavigate()
 
-  const [materialType, setMaterialType] = useState<MaterialType | ''>('')
-  const [color, setColor] = useState<MaterialColor | ''>('')
-  const [pattern, setPattern] = useState<MaterialPattern | ''>('')
-  const [minGrade, setMinGrade] = useState<MaterialGrade | ''>('')
-  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>('')
-  const [usePointMaterial, setUsePointMaterial] = useState('false')
+  // f4에서 "이전 단계로"로 돌아왔을 때, 또는 새로고침 후에도 방금 저장했던 조건이 폼에
+  // 남아있도록 저장 mutation의 onSuccess가 채워두는 값을 읽어온다. 백엔드에 조회용 GET이
+  // 없어서 이 localStorage 캐시가 유일한 사본이다(TanStack Query 인메모리 캐시는
+  // 새로고침하면 사라져서 쓸 수 없음).
+  const cachedRequirement = dropId
+    ? readCache<DesignRequirementResponse>(`design-requirement:${dropId}`)
+    : undefined
+
+  const [materialType, setMaterialType] = useState<MaterialType | ''>(
+    cachedRequirement?.materialType ?? '',
+  )
+  const [color, setColor] = useState<MaterialColor | ''>(cachedRequirement?.color ?? '')
+  const [pattern, setPattern] = useState<MaterialPattern | ''>(cachedRequirement?.pattern ?? '')
+  const [minGrade, setMinGrade] = useState<MaterialGrade | ''>(cachedRequirement?.minGrade ?? '')
+  const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>(
+    cachedRequirement?.accessoryColor ?? '',
+  )
+  const [usePointMaterial, setUsePointMaterial] = useState(
+    cachedRequirement?.usePointMaterial ? 'true' : 'false',
+  )
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
@@ -86,6 +102,10 @@ export function DesignRequirementPage() {
         `/api/drops/${dropId}/design-requirement`,
         { method: 'POST', body: formData },
       )
+    },
+    onSuccess: (data) => {
+      writeCache(`design-requirement:${dropId}`, data)
+      navigate(`/drops/${dropId}/candidates`)
     },
   })
 
@@ -200,7 +220,10 @@ export function DesignRequirementPage() {
           </div>
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
-        <CardFooter className="justify-end">
+        <CardFooter className="justify-between">
+          <Button variant="secondary" onClick={() => navigate('/drops/new')}>
+            이전 단계로
+          </Button>
           <Button onClick={() => mutate()} disabled={isPending}>
             {isPending ? '저장 중...' : '다음: 소재 후보 추천 받기'}
           </Button>

@@ -232,11 +232,12 @@ export function MaterialRegistrationPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-4xl">
         <CardHeader>
           <CardTitle>소재 등록 &amp; AI 태깅 확인</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
           <PanelSection title="소재 사진 업로드">
             {!imageFull ? (
               <ImageDropSlot
@@ -413,6 +414,7 @@ export function MaterialRegistrationPage() {
               <FormMessage>등록에 실패했습니다. 다시 시도해주세요.</FormMessage>
             )}
           </PanelSection>
+          </div>
 
           <PanelSection
             title="등록된 소재 목록"

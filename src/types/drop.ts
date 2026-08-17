@@ -1,3 +1,5 @@
+import type { ProductionScenarioItemResponse } from '@/types/production'
+
 export interface PatternPiece {
   pieceName: string
   widthMm: number
@@ -41,4 +43,35 @@ export interface DesignRequirementResponse {
   minGrade: MaterialGrade | null
   accessoryColor: AccessoryColor | null
   usePointMaterial: boolean | null
+}
+
+// PATCH /api/drops/{dropId}/confirm 요청 (b13)
+export interface DropConfirmRequest {
+  name: string
+  expectedProductionDays: number
+}
+
+// PATCH /api/drops/{dropId}/confirm 응답 (b13) — introText는 b14가 확정 흐름에 흡수되어
+// 함께 생성되지만, AI 생성이 실패하면 null일 수 있음(담당자가 직접 채워야 함).
+export interface DropConfirmResponse {
+  id: string
+  status: string
+  name: string
+  expectedProductionDays: number
+  selectedScenarioId: string
+  items: ProductionScenarioItemResponse[]
+  introText: string | null
+  regenerationsRemaining: number
+}
+
+// POST /api/drops/{dropId}/intro-text 응답 (b14, AI 재생성)
+export interface DropIntroTextResponse {
+  dropId: string
+  introText: string
+  regenerationsRemaining: number
+}
+
+// PATCH /api/drops/{dropId}/intro-text 요청 (b14, 담당자가 고친 최종본 저장)
+export interface DropIntroTextRequest {
+  introText: string
 }
