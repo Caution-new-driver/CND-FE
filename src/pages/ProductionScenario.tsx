@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 
 export const PRODUCT_TYPE_LABEL: Record<string, string> = {
@@ -121,7 +122,8 @@ export function ProductionScenarioPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
+      <FlowFrame activeStep={5} dropId={dropId}>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>제작 결과 및 제작안 비교</CardTitle>
         </CardHeader>
@@ -210,7 +212,7 @@ export function ProductionScenarioPage() {
           )}
         </CardContent>
         <CardFooter className="justify-between">
-          <Button variant="secondary" onClick={() => navigate(`/drops/${dropId}/candidates`)}>
+          <Button onClick={() => navigate(`/drops/${dropId}/candidates`)}>
             이전 단계로
           </Button>
           <Button
@@ -221,6 +223,7 @@ export function ProductionScenarioPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 
 const MINI_BAG_TEMPLATE_NAME = '미니백'
@@ -28,7 +29,8 @@ export function DropStartPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
+      <FlowFrame activeStep={2}>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>새 RUN Drop 기획하기</CardTitle>
         </CardHeader>
@@ -73,6 +75,7 @@ export function DropStartPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }

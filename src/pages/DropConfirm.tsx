@@ -14,6 +14,7 @@ import type { ProductionScenarioListResponse } from '@/types/production'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 import { Input } from '@/components/ui/input'
 import { PanelSection } from '@/components/ui/panel-section'
@@ -108,7 +109,8 @@ export function DropConfirmPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-3xl">
+      <FlowFrame activeStep={6} dropId={dropId} maxWidthClassName="max-w-3xl">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>RUN Drop 확정 · 소개문</CardTitle>
         </CardHeader>
@@ -211,7 +213,7 @@ export function DropConfirmPage() {
         <CardFooter className="justify-between">
           {isConfirmed ? (
             <>
-              <Button variant="secondary" onClick={() => navigate('/materials')}>
+              <Button onClick={() => navigate('/materials')}>
                 처음화면으로 돌아가기
               </Button>
               <div className="flex gap-2">
@@ -224,7 +226,7 @@ export function DropConfirmPage() {
             </>
           ) : (
             <>
-              <Button variant="secondary" onClick={() => navigate(`/drops/${dropId}/production-scenario`)}>
+              <Button onClick={() => navigate(`/drops/${dropId}/production-scenario`)}>
                 이전 단계로
               </Button>
               <Button
@@ -237,6 +239,7 @@ export function DropConfirmPage() {
           )}
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }

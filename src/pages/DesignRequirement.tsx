@@ -13,6 +13,7 @@ import type {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
 import {
@@ -100,7 +101,8 @@ export function DesignRequirementPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
+      <FlowFrame activeStep={3} dropId={dropId}>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>디자인 조건 입력</CardTitle>
         </CardHeader>
@@ -174,7 +176,7 @@ export function DesignRequirementPage() {
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
         <CardFooter className="justify-between">
-          <Button variant="secondary" onClick={() => navigate('/drops/new')}>
+          <Button onClick={() => navigate('/drops/new')}>
             이전 단계로
           </Button>
           <Button onClick={() => mutate()} disabled={isPending}>
@@ -182,6 +184,7 @@ export function DesignRequirementPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }
