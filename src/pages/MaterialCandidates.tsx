@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
 import { FlowFrame } from '@/components/ui/flow-frame'
+import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
 import { PanelSection } from '@/components/ui/panel-section'
 import {
@@ -270,49 +271,73 @@ export function MaterialCandidatesPage() {
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <Select value={mainCandidateId} onValueChange={(value) => setMainCandidateId(value ?? '')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="주 소재 선택">
-                      {(value: string) => {
-                        const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : '주 소재로 사용할 후보를 선택하세요'
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {candidates.map((candidate) => (
-                      <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
-                        {candidateLabel(candidate)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={pointCandidateId || NO_POINT_MATERIAL}
-                  onValueChange={(value) =>
-                    setPointCandidateId(value === NO_POINT_MATERIAL ? '' : (value ?? ''))
+                <FormField
+                  label={
+                    <>
+                      주 소재{' '}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        (앞면·뒷면)
+                      </span>
+                    </>
                   }
+                  className="[&_label]:text-xs [&_label]:text-muted-foreground"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="포인트 소재 (선택)">
-                      {(value: string) => {
-                        if (value === NO_POINT_MATERIAL || !value) return '사용 안 함'
-                        const selected = candidates.find((candidate) => candidate.candidateId === value)
-                        return selected ? candidateLabel(selected) : '포인트 소재를 선택하세요'
-                      }}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_POINT_MATERIAL}>사용 안 함</SelectItem>
-                    {candidates
-                      .filter((candidate) => candidate.candidateId !== mainCandidateId)
-                      .map((candidate) => (
+                  <Select value={mainCandidateId} onValueChange={(value) => setMainCandidateId(value ?? '')}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="주 소재 선택">
+                        {(value: string) => {
+                          const selected = candidates.find((candidate) => candidate.candidateId === value)
+                          return selected ? candidateLabel(selected) : '주 소재로 사용할 후보를 선택하세요'
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {candidates.map((candidate) => (
                         <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
                           {candidateLabel(candidate)}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                <FormField
+                  label={
+                    <>
+                      포인트 소재{' '}
+                      <span className="text-xs font-normal text-muted-foreground">
+                        (옆면·바닥면)
+                      </span>
+                    </>
+                  }
+                  className="[&_label]:text-xs [&_label]:text-muted-foreground"
+                >
+                  <Select
+                    value={pointCandidateId || NO_POINT_MATERIAL}
+                    onValueChange={(value) =>
+                      setPointCandidateId(value === NO_POINT_MATERIAL ? '' : (value ?? ''))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="포인트 소재 (선택)">
+                        {(value: string) => {
+                          if (value === NO_POINT_MATERIAL || !value) return '사용 안 함'
+                          const selected = candidates.find((candidate) => candidate.candidateId === value)
+                          return selected ? candidateLabel(selected) : '포인트 소재를 선택하세요'
+                        }}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_POINT_MATERIAL}>사용 안 함</SelectItem>
+                      {candidates
+                        .filter((candidate) => candidate.candidateId !== mainCandidateId)
+                        .map((candidate) => (
+                          <SelectItem key={candidate.candidateId} value={candidate.candidateId}>
+                            {candidateLabel(candidate)}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
               </div>
             )}
 
