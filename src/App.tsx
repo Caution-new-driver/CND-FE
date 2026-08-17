@@ -17,6 +17,15 @@ function AppLayout() {
   )
 }
 
+function AppLayout() {
+  return (
+    <RequireAuth>
+      <AppHeader />
+      <Outlet />
+    </RequireAuth>
+  )
+}
+
 // Figma 흐름 순서: f1 소재 등록 -> f2 Drop 시작 -> f3 디자인 조건 -> f4 AI 추천 후보
 // -> f6 제작 결과 비교 -> f7·f8 Drop 확정·소개문
 function App() {
