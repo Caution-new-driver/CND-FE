@@ -84,9 +84,6 @@ export function DesignRequirementPage() {
   const [accessoryColor, setAccessoryColor] = useState<AccessoryColor | ''>(
     cachedRequirement?.accessoryColor ?? '',
   )
-  const [usePointMaterial, setUsePointMaterial] = useState(
-    cachedRequirement?.usePointMaterial ? 'true' : 'false',
-  )
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
@@ -96,7 +93,6 @@ export function DesignRequirementPage() {
       if (pattern) formData.append('pattern', pattern)
       if (minGrade) formData.append('minGrade', minGrade)
       if (accessoryColor) formData.append('accessoryColor', accessoryColor)
-      formData.append('usePointMaterial', usePointMaterial)
 
       return apiFetch<DesignRequirementResponse>(
         `/api/drops/${dropId}/design-requirement`,
@@ -200,19 +196,6 @@ export function DesignRequirementPage() {
                         {option.label}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-              <FormField label="포인트 소재 사용" className="[&_label]:text-xs [&_label]:text-muted-foreground">
-                <Select value={usePointMaterial} onValueChange={(value) => setUsePointMaterial(value ?? 'false')}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="선택">
-                      {usePointMaterial === 'true' ? '사용' : '미사용'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">사용</SelectItem>
-                    <SelectItem value="false">미사용</SelectItem>
                   </SelectContent>
                 </Select>
               </FormField>
