@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -12,6 +12,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 
@@ -21,9 +29,11 @@ import { FormMessage } from '@/components/ui/form-message'
 function DropRow({
   drop,
   onViewDetail,
+  onRequestDelete,
 }: {
   drop: DropResponse
   onViewDetail: (drop: DropResponse) => void
+  onRequestDelete: (drop: DropResponse) => void
 }) {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
@@ -76,6 +86,16 @@ function DropRow({
           </span>
         </Button>
       )}
+      {drop.status === 'DRAFT' && (
+        <Button
+          size="sm"
+          variant="destructive"
+          className="rounded-sm"
+          onClick={() => onRequestDelete(drop)}
+        >
+          <span className="translate-y-px">삭제</span>
+        </Button>
+      )}
       <Button size="sm" className="rounded-sm" onClick={() => onViewDetail(drop)}>
         <span className="translate-y-px">상세보기</span>
       </Button>
@@ -86,12 +106,22 @@ function DropRow({
 export function DropListPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
   const [selectedDrop, setSelectedDrop] = useState<DropResponse | null>(null)
+  const [dropPendingDelete, setDropPendingDelete] = useState<DropResponse | null>(null)
 
   const dropsQuery = useQuery({
     queryKey: ['drops'],
     queryFn: () => apiFetch<DropResponse[]>('/api/drops'),
     enabled: isAuthenticated,
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (dropId: string) => apiFetch(`/api/drops/${dropId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['drops'] })
+      setDropPendingDelete(null)
+    },
   })
 
   const drops = dropsQuery.data ?? []
@@ -117,7 +147,15 @@ export function DropListPage() {
               <p className="py-2 text-[11.5px] text-muted-foreground">등록된 Drop이 없습니다.</p>
             ) : (
               drops.map((drop) => (
-                <DropRow key={drop.id} drop={drop} onViewDetail={setSelectedDrop} />
+                <DropRow
+                  key={drop.id}
+                  drop={drop}
+                  onViewDetail={setSelectedDrop}
+                  onRequestDelete={(target) => {
+                    deleteMutation.reset()
+                    setDropPendingDelete(target)
+                  }}
+                />
               ))
             )}
           </CardContent>
@@ -125,6 +163,44 @@ export function DropListPage() {
       </FlowFrame>
 
       <DropDetailDialog drop={selectedDrop} onClose={() => setSelectedDrop(null)} />
+
+      <Dialog
+        open={dropPendingDelete !== null}
+        onOpenChange={(open) => !open && !deleteMutation.isPending && setDropPendingDelete(null)}
+      >
+        <DialogContent showCloseButton={false} className="max-w-sm">
+          {dropPendingDelete && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Drop 삭제</DialogTitle>
+                <DialogDescription>
+                  "{dropPendingDelete.name ?? '미확정 DROP'}"을(를) 삭제하시겠습니까? 저장된 조건·선택·계산
+                  결과가 모두 사라지며 되돌릴 수 없습니다.
+                </DialogDescription>
+              </DialogHeader>
+              {deleteMutation.isError && (
+                <FormMessage>삭제에 실패했습니다. 다시 시도해주세요.</FormMessage>
+              )}
+              <DialogFooter>
+                <Button
+                  variant="secondary"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => setDropPendingDelete(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => deleteMutation.mutate(dropPendingDelete.id)}
+                >
+                  {deleteMutation.isPending ? '삭제 중...' : '삭제'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </CenteredPage>
   )
 }
