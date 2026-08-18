@@ -174,8 +174,8 @@ export function ProductionScenarioPage() {
                     <div
                       key={scenario.scenarioId}
                       className={cn(
-                        'flex flex-col gap-2.5 rounded-md border p-3.5',
-                        isRecommended ? 'border-primary' : 'border-border',
+                        'flex flex-col gap-2.5 rounded-md border p-3.5 transition-colors hover:border-black',
+                        scenario.selected ? 'border-black' : 'border-border',
                       )}
                     >
                       <div className="flex items-center justify-between">
@@ -192,7 +192,7 @@ export function ProductionScenarioPage() {
                       </div>
                       <div className="flex justify-end">
                         <Button
-                          variant={isRecommended ? 'default' : 'secondary'}
+                          variant="secondary"
                           size="sm"
                           disabled={scenario.selected || selectMutation.isPending}
                           onClick={() => selectMutation.mutate(scenario.scenarioId)}
