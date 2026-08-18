@@ -218,8 +218,7 @@ export function DropConfirmPage() {
               </Button>
               <div className="flex gap-2">
                 <Button disabled>확정 완료</Button>
-                {/* TODO: Drop 조회 화면이 아직 없어서 임시 버튼만 배치 */}
-                <Button variant="secondary" onClick={() => {}}>
+                <Button variant="secondary" onClick={() => navigate('/drops')}>
                   Drop 조회하기
                 </Button>
               </div>
