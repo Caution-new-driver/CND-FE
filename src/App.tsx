@@ -2,6 +2,7 @@ import { Navigate, Outlet, Routes, Route } from 'react-router-dom'
 import { DropStartPage } from '@/pages/DropStart'
 import { DesignRequirementPage } from '@/pages/DesignRequirement'
 import { DropConfirmPage } from '@/pages/DropConfirm'
+import { DropListPage } from '@/pages/DropList'
 import { MaterialCandidatesPage } from '@/pages/MaterialCandidates'
 import { MaterialRegistrationPage } from '@/pages/MaterialRegistration'
 import { ProductionScenarioPage } from '@/pages/ProductionScenario'
@@ -25,6 +26,7 @@ function App() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Navigate to="/materials" replace />} />
         <Route path="/materials" element={<MaterialRegistrationPage />} />
+        <Route path="/drops" element={<DropListPage />} />
         <Route path="/drops/new" element={<DropStartPage />} />
         <Route path="/drops/:dropId/design-requirement" element={<DesignRequirementPage />} />
         <Route path="/drops/:dropId/candidates" element={<MaterialCandidatesPage />} />

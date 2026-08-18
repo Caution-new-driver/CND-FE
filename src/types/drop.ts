@@ -15,6 +15,10 @@ export interface AccessoryRequirement {
 export interface DropResponse {
   id: string
   status: string
+  // b13 확정 시점에 채워짐. 확정 전(DRAFT)에는 null.
+  name: string | null
+  introText: string | null
+  expectedProductionDays: number | null
   templateId: string
   templateName: string
   patternPieces: PatternPiece[]
