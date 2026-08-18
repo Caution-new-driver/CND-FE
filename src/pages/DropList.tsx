@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { resolveResumePath } from '@/lib/resume-drop'
 import {
   DROP_STATUS_LABEL,
   DropDetailDialog,
@@ -17,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormMessage } from '@/components/ui/form-message'
 
 // 목록 API(GET /api/drops)는 제작 수량·활용률을 내려주지 않아서, 행마다 개별적으로
@@ -30,6 +32,12 @@ function DropRow({
   onViewDetail: (drop: DropResponse) => void
 }) {
   const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+
+  const resumeMutation = useMutation({
+    mutationFn: () => resolveResumePath(drop.id),
+    onSuccess: (path) => navigate(path),
+  })
 
   const scenariosQuery = useQuery({
     queryKey: productionScenariosQueryKey(drop.id),
@@ -62,6 +70,19 @@ function DropRow({
       >
         <span className="translate-y-px">{DROP_STATUS_LABEL[drop.status] ?? drop.status}</span>
       </Badge>
+      {drop.status === 'DRAFT' && (
+        <Button
+          size="sm"
+          variant="secondary"
+          className="rounded-sm"
+          disabled={resumeMutation.isPending}
+          onClick={() => resumeMutation.mutate()}
+        >
+          <span className="translate-y-px">
+            {resumeMutation.isPending ? '확인 중...' : '이어서 제작'}
+          </span>
+        </Button>
+      )}
       <Button size="sm" className="rounded-sm" onClick={() => onViewDetail(drop)}>
         <span className="translate-y-px">상세보기</span>
       </Button>
@@ -84,29 +105,31 @@ export function DropListPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>전체 Drop 목록</CardTitle>
-          <CardAction>
-            <Button className="rounded-sm" onClick={() => navigate('/drops/new')}>
-              새 Drop 만들기
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {dropsQuery.isLoading ? (
-            <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
-          ) : dropsQuery.isError ? (
-            <FormMessage>Drop 목록을 불러오지 못했습니다.</FormMessage>
-          ) : drops.length === 0 ? (
-            <p className="py-2 text-[11.5px] text-muted-foreground">등록된 Drop이 없습니다.</p>
-          ) : (
-            drops.map((drop) => (
-              <DropRow key={drop.id} drop={drop} onViewDetail={setSelectedDrop} />
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <FlowFrame activeStep={7}>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>전체 Drop 목록</CardTitle>
+            <CardAction>
+              <Button className="rounded-sm" onClick={() => navigate('/drops/new')}>
+                새 Drop 만들기
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {dropsQuery.isLoading ? (
+              <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
+            ) : dropsQuery.isError ? (
+              <FormMessage>Drop 목록을 불러오지 못했습니다.</FormMessage>
+            ) : drops.length === 0 ? (
+              <p className="py-2 text-[11.5px] text-muted-foreground">등록된 Drop이 없습니다.</p>
+            ) : (
+              drops.map((drop) => (
+                <DropRow key={drop.id} drop={drop} onViewDetail={setSelectedDrop} />
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </FlowFrame>
 
       <DropDetailDialog drop={selectedDrop} onClose={() => setSelectedDrop(null)} />
     </CenteredPage>

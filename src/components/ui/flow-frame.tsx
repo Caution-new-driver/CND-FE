@@ -7,10 +7,13 @@ type FlowTab = {
   step: number
   label: string
   to?: string
+  // f1~f6 순서 진행과 무관하게 항상 이동 가능한 탭(예: Drop 목록 조회)에 사용.
+  alwaysClickable?: boolean
 }
 
 // f1~f6 전체 흐름의 탭 순서. dropId가 있어야만 이동 가능한 단계는 to를 조건부로 채운다.
 // f2(Drop 기획)는 dropId 없이 재진입할 라우트가 없어 항상 to 없이(=클릭 불가) 둔다.
+// 맨 끝의 "Drop 목록"은 순서상의 다음 단계가 아니라 별도 화면이라 항상 클릭 가능하게 둔다.
 function buildFlowTabs(dropId: string | undefined): FlowTab[] {
   return [
     { step: 1, label: "01 소재 등록", to: "/materials" },
@@ -27,6 +30,7 @@ function buildFlowTabs(dropId: string | undefined): FlowTab[] {
       to: dropId ? `/drops/${dropId}/production-scenario` : undefined,
     },
     { step: 6, label: "06 Drop 확정", to: dropId ? `/drops/${dropId}/confirm` : undefined },
+    { step: 7, label: "Drop 목록", to: "/drops", alwaysClickable: true },
   ]
 }
 
@@ -58,9 +62,9 @@ function FlowFrame({
     >
       <div className="bg-card px-4 pt-3">
         <div className="flex gap-1 overflow-x-auto">
-          {tabs.map(({ step, label, to }) => {
+          {tabs.map(({ step, label, to, alwaysClickable }) => {
             const isActive = step === activeStep
-            const isClickable = Boolean(to) && step <= activeStep && !isActive
+            const isClickable = Boolean(to) && !isActive && (alwaysClickable || step <= activeStep)
             return (
               <button
                 key={step}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
@@ -62,9 +62,9 @@ export function DesignRequirementPage() {
   const navigate = useNavigate()
 
   // f4에서 "이전 단계로"로 돌아왔을 때, 또는 새로고침 후에도 방금 저장했던 조건이 폼에
-  // 남아있도록 저장 mutation의 onSuccess가 채워두는 값을 읽어온다. 백엔드에 조회용 GET이
-  // 없어서 이 localStorage 캐시가 유일한 사본이다(TanStack Query 인메모리 캐시는
-  // 새로고침하면 사라져서 쓸 수 없음).
+  // 남아있도록 저장 mutation의 onSuccess가 채워두는 값을 읽어온다(TanStack Query 인메모리
+  // 캐시는 새로고침하면 사라져서 쓸 수 없음). 이 캐시가 없는 경우(다른 기기·캐시 삭제 후
+  // "이어서 제작")는 아래 effect가 백엔드 GET으로 대체 조회한다.
   const cachedRequirement = dropId
     ? readCache<DesignRequirementResponse>(`design-requirement:${dropId}`)
     : undefined
@@ -75,6 +75,24 @@ export function DesignRequirementPage() {
   const [color, setColor] = useState<MaterialColor | ''>(cachedRequirement?.color ?? '')
   const [pattern, setPattern] = useState<MaterialPattern | ''>(cachedRequirement?.pattern ?? '')
   const [minGrade, setMinGrade] = useState<MaterialGrade | ''>(cachedRequirement?.minGrade ?? '')
+
+  // "이어서 제작"으로 다른 기기/캐시가 지워진 브라우저에서 재진입하면 localStorage 캐시가
+  // 없어서 폼이 비어 보인다. 캐시가 없을 때만 백엔드에서 저장된 조건을 조회해 채운다.
+  useEffect(() => {
+    if (!dropId || cachedRequirement) return
+    apiFetch<DesignRequirementResponse>(`/api/drops/${dropId}/design-requirement`)
+      .then((data) => {
+        setMaterialType(data.materialType ?? '')
+        setColor(data.color ?? '')
+        setPattern(data.pattern ?? '')
+        setMinGrade(data.minGrade ?? '')
+        writeCache(`design-requirement:${dropId}`, data)
+      })
+      .catch(() => {
+        // 아직 저장한 적 없는 새 Drop이면 404 — 빈 폼 그대로 둔다.
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropId])
 
   // 희망 소재 조건 4개 중 하나라도 비어 있으면 다음 단계(f4 소재 추천)로 못 넘어가게 막는다.
   const hasAllConditions = Boolean(materialType && color && pattern && minGrade)

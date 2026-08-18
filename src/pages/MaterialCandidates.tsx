@@ -9,9 +9,11 @@ import { MATERIAL_COLOR_LABEL, MATERIAL_TYPE_LABEL } from '@/lib/material-option
 import type {
   AccessoryResponse,
   AccessorySelectionRequest,
+  AccessorySelectionResponse,
   MaterialCandidateListResponse,
   MaterialCandidateResponse,
   MaterialSelectionRequest,
+  MaterialSelectionResponse,
 } from '@/types/candidate'
 import type { DesignRequirementResponse } from '@/types/drop'
 import { Badge } from '@/components/ui/badge'
@@ -138,12 +140,45 @@ export function MaterialCandidatesPage() {
     [candidatesResult],
   )
 
-  // AI 추천 1순위를 기본 선택값으로 잡아둔다
+  // "이어서 제작" 재진입 시 이전에 저장해둔 조합(주 소재·포인트 소재·부자재)을 복원한다.
+  // 저장된 적 없는 새 진입이면(404) AI 추천 1순위를 기본 선택값으로 잡아둔다.
+  // candidateId는 재계산할 때마다 새로 발급돼서 저장은 candidateId가 아니라 실제 소재
+  // materialId 기준이라, 지금 후보 목록에서 같은 materialId를 가진 후보를 다시 찾아 매칭한다.
+  const restoredSelectionForDropId = useRef<string | null>(null)
   useEffect(() => {
-    if (!mainCandidateId && candidates.length > 0) {
-      setMainCandidateId(candidates[0].candidateId)
-    }
-  }, [candidates, mainCandidateId])
+    if (!dropId || candidates.length === 0 || restoredSelectionForDropId.current === dropId) return
+    restoredSelectionForDropId.current = dropId
+
+    apiFetch<MaterialSelectionResponse>(`/api/drops/${dropId}/material-selection`)
+      .then((selection) => {
+        const mainCandidate = candidates.find(
+          (candidate) => candidate.material.id === selection.mainMaterial.id,
+        )
+        if (mainCandidate) setMainCandidateId(mainCandidate.candidateId)
+
+        const pointMaterialId = selection.pointMaterial?.id
+        const pointCandidate = pointMaterialId
+          ? candidates.find((candidate) => candidate.material.id === pointMaterialId)
+          : undefined
+        if (pointCandidate) setPointCandidateId(pointCandidate.candidateId)
+      })
+      .catch(() => {
+        // 저장된 조합이 없는 새 진입 — AI 추천 1순위를 기본값으로 잡는다.
+        setMainCandidateId(candidates[0].candidateId)
+      })
+
+    apiFetch<AccessorySelectionResponse>(`/api/drops/${dropId}/accessory-selections`)
+      .then((response) => {
+        if (response.selections.length === 0) return
+        setSelectedAccessoryIds(
+          Object.fromEntries(
+            response.selections.map((selection) => [selection.accessoryType, selection.accessoryId]),
+          ),
+        )
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropId, candidates])
 
   const accessoriesQuery = useQuery({
     queryKey: ['accessories'],
