@@ -1,4 +1,5 @@
-import { Navigate, Outlet, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Outlet, Routes, Route, useLocation } from 'react-router-dom'
 import { DropStartPage } from '@/pages/DropStart'
 import { DesignRequirementPage } from '@/pages/DesignRequirement'
 import { DropConfirmPage } from '@/pages/DropConfirm'
@@ -9,9 +10,20 @@ import { ProductionScenarioPage } from '@/pages/ProductionScenario'
 import { AppHeader } from '@/components/app-header'
 import { RequireAuth } from '@/components/require-auth'
 
+// "다음"/"이전" 등으로 f1~f6 사이를 이동할 때 이전 화면에서 스크롤해둔 위치가 그대로
+// 남아있지 않도록, 경로가 바뀔 때마다 항상 맨 위에서부터 보이게 한다.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 function AppLayout() {
   return (
     <RequireAuth>
+      <ScrollToTop />
       <AppHeader />
       <Outlet />
     </RequireAuth>

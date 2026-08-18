@@ -6,12 +6,12 @@ export function AppHeader() {
   const { isAuthenticated } = useAuth()
 
   return (
-    <header className="relative flex h-32 items-center justify-between border-b border-border px-4">
+    <header className="relative flex h-24 items-end justify-between border-b border-border px-4 pb-2">
       <span className="text-sm font-semibold">next:R.U.N.</span>
       <img
         src={mcmLogo}
         alt="MCM"
-        className="absolute left-1/2 h-28 w-auto -translate-x-1/2"
+        className="absolute top-1/2 left-1/2 h-[72px] w-auto -translate-x-1/2 -translate-y-1/2"
       />
       {isAuthenticated && (
         <Button variant="ghost" size="sm" onClick={() => clearToken()}>
