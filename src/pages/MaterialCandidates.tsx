@@ -276,7 +276,7 @@ export function MaterialCandidatesPage() {
                     <>
                       주 소재{' '}
                       <span className="text-xs font-normal text-muted-foreground">
-                        (앞면·뒷면)
+                        (앞면·뒷면 - 포인트 소재 미선택 시 모든 면)
                       </span>
                     </>
                   }

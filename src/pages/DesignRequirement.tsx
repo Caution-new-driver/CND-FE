@@ -76,6 +76,9 @@ export function DesignRequirementPage() {
   const [pattern, setPattern] = useState<MaterialPattern | ''>(cachedRequirement?.pattern ?? '')
   const [minGrade, setMinGrade] = useState<MaterialGrade | ''>(cachedRequirement?.minGrade ?? '')
 
+  // 희망 소재 조건 4개 중 하나라도 비어 있으면 다음 단계(f4 소재 추천)로 못 넘어가게 막는다.
+  const hasAllConditions = Boolean(materialType && color && pattern && minGrade)
+
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => {
       const formData = new FormData()
@@ -173,13 +176,16 @@ export function DesignRequirementPage() {
               </FormField>
             </div>
           </div>
+          {!hasAllConditions && (
+            <FormMessage variant="muted">희망 소재 조건을 모두 선택해주세요.</FormMessage>
+          )}
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
         <CardFooter className="justify-between">
           <Button onClick={() => navigate('/drops/new')}>
             이전 단계로
           </Button>
-          <Button onClick={() => mutate()} disabled={isPending}>
+          <Button onClick={() => mutate()} disabled={!hasAllConditions || isPending}>
             {isPending ? '저장 중...' : '다음: 소재 후보 추천 받기'}
           </Button>
         </CardFooter>
