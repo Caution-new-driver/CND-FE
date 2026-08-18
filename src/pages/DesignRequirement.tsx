@@ -130,7 +130,7 @@ export function DesignRequirementPage() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 rounded-md border border-border p-3.5">
             <h3 className="text-sm font-bold">희망 소재 조건</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <FormField label="소재 종류" htmlFor="materialType" className="[&_label]:text-xs [&_label]:text-muted-foreground">
                 <Select
                   value={materialType}
