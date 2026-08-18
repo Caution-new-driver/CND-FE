@@ -353,7 +353,7 @@ export function MaterialRegistrationPage() {
               </Select>
               <Select value={grade} onValueChange={(value) => setGrade(value ?? '')}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="등급">{grade && `${grade}등급`}</SelectValue>
+                  <SelectValue placeholder="등급">{grade ? `${grade}등급` : undefined}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_GRADE_OPTIONS.map((g) => (
