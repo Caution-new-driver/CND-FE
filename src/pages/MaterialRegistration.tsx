@@ -339,7 +339,9 @@ export function MaterialRegistrationPage() {
               />
               <Select value={materialType} onValueChange={(value) => setMaterialType(value ?? '')}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="소재 종류" />
+                  <SelectValue placeholder="소재 종류">
+                    {MATERIAL_TYPE_LABEL[materialType as keyof typeof MATERIAL_TYPE_LABEL]}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_TYPE_OPTIONS.map((type) => (
@@ -351,7 +353,7 @@ export function MaterialRegistrationPage() {
               </Select>
               <Select value={grade} onValueChange={(value) => setGrade(value ?? '')}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="등급" />
+                  <SelectValue placeholder="등급">{grade && `${grade}등급`}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_GRADE_OPTIONS.map((g) => (
