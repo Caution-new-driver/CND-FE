@@ -35,6 +35,9 @@ export function DropConfirmPage() {
   const [name, setName] = useState('')
   const [expectedProductionDays, setExpectedProductionDays] = useState('')
   const [introText, setIntroText] = useState('')
+  // introText 중 서버에 마지막으로 저장된 값. Textarea 값과 다르면 "저장 안 한 변경사항"이 있다는 뜻이라
+  // 화면 이동 버튼에서 유실 경고를 띄우는 기준으로 쓴다.
+  const [savedIntroText, setSavedIntroText] = useState('')
 
   // b13(Drop 확정)이 아직 안 끝났으면 null. 확정 응답에 AI 소개문 초안(b14)까지 같이 온다.
   const [confirmResult, setConfirmResult] = useState<DropConfirmResponse | null>(null)
@@ -67,7 +70,8 @@ export function DropConfirmPage() {
     onSuccess: (data) => {
       setConfirmResult(data)
       setRegenerationsRemaining(data.regenerationsRemaining)
-      if (data.introText) setIntroText(data.introText)
+      setIntroText(data.introText ?? '')
+      setSavedIntroText(data.introText ?? '')
     },
   })
 
@@ -77,6 +81,7 @@ export function DropConfirmPage() {
       apiFetch<DropIntroTextResponse>(`/api/drops/${dropId}/intro-text`, { method: 'POST' }),
     onSuccess: (data) => {
       setIntroText(data.introText)
+      setSavedIntroText(data.introText)
       setRegenerationsRemaining(data.regenerationsRemaining)
     },
   })
@@ -89,6 +94,7 @@ export function DropConfirmPage() {
         body: JSON.stringify({ introText } satisfies DropIntroTextRequest),
       }),
     onSuccess: (data) => {
+      setSavedIntroText(data.introText)
       setRegenerationsRemaining(data.regenerationsRemaining)
     },
   })
@@ -106,6 +112,18 @@ export function DropConfirmPage() {
     name.trim() !== '' &&
     expectedProductionDays.trim() !== '' &&
     Number(expectedProductionDays) > 0
+
+  // 소개문을 고치거나 AI로 재생성만 하고 "저장"을 안 누른 상태로 화면을 벗어나면
+  // 그 내용이 그대로 유실되므로, 벗어나기 전에 확인창을 띄운다.
+  function navigateAwayFromIntro(to: string) {
+    if (introText !== savedIntroText) {
+      const confirmed = window.confirm(
+        '저장하지 않은 소개문 변경사항이 있습니다. 이동하면 내용이 사라집니다. 계속하시겠습니까?',
+      )
+      if (!confirmed) return
+    }
+    navigate(to)
+  }
 
   return (
     <CenteredPage>
@@ -213,12 +231,12 @@ export function DropConfirmPage() {
         <CardFooter className="justify-between">
           {isConfirmed ? (
             <>
-              <Button onClick={() => navigate('/materials')}>
+              <Button onClick={() => navigateAwayFromIntro('/materials')}>
                 처음화면으로 돌아가기
               </Button>
               <div className="flex gap-2">
                 <Button disabled>확정 완료</Button>
-                <Button variant="secondary" onClick={() => navigate('/drops')}>
+                <Button variant="secondary" onClick={() => navigateAwayFromIntro('/drops')}>
                   Drop 조회하기
                 </Button>
               </div>
