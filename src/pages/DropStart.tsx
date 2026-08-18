@@ -71,7 +71,7 @@ export function DropStartPage() {
             새 소재 등록하기
           </Button>
           <Button onClick={() => mutate()} disabled={isPending || !template}>
-            {isPending ? '기획을 시작하는 중...' : '다음: 디자인 조건 입력'}
+            {isPending ? '기획을 시작하는 중...' : 'Drop 기획 시작하기 (Drop 생성)'}
           </Button>
         </CardFooter>
       </Card>

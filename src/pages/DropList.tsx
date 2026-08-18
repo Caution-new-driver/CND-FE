@@ -4,13 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { resolveResumePath } from '@/lib/resume-drop'
-import {
-  DROP_STATUS_LABEL,
-  DropDetailDialog,
-  dropStatusBadgeClassName,
-  dropStatusBadgeVariant,
-  productionScenariosQueryKey,
-} from '@/components/drop-detail-dialog'
+import { DropDetailDialog, productionScenariosQueryKey } from '@/components/drop-detail-dialog'
 import { itemsLabel } from '@/pages/ProductionScenario'
 import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
@@ -61,20 +55,19 @@ function DropRow({
     <div className="flex items-center gap-3 rounded-md border border-border p-3">
       <div className="size-14 shrink-0 rounded-md border border-border bg-muted" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate text-[12.5px] font-bold">{drop.name ?? `${drop.templateName} Drop`}</p>
+        <p className="truncate text-[12.5px] font-bold">{drop.name ?? '미확정 DROP'}</p>
         <p className="truncate text-[11px] text-muted-foreground">{summary}</p>
       </div>
-      <Badge
-        variant={dropStatusBadgeVariant(drop.status)}
-        className={dropStatusBadgeClassName(drop.status)}
-      >
-        <span className="translate-y-px">{DROP_STATUS_LABEL[drop.status] ?? drop.status}</span>
-      </Badge>
+      {drop.status === 'CONFIRMED' && (
+        <Badge variant="secondary" className="rounded-sm">
+          <span className="translate-y-px">제작 완료</span>
+        </Badge>
+      )}
       {drop.status === 'DRAFT' && (
         <Button
           size="sm"
           variant="secondary"
-          className="rounded-sm"
+          className="rounded-sm text-white"
           disabled={resumeMutation.isPending}
           onClick={() => resumeMutation.mutate()}
         >

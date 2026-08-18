@@ -15,20 +15,6 @@ import {
 import { FormMessage } from '@/components/ui/form-message'
 import { Input } from '@/components/ui/input'
 
-export const DROP_STATUS_LABEL: Record<string, string> = {
-  DRAFT: '모집중',
-  CONFIRMED: '마감',
-}
-
-// DRAFT("모집중")는 지정된 브랜드 컬러(#B18155)로 강조, CONFIRMED("마감")는 secondary(톤 다운)
-export function dropStatusBadgeVariant(status: string) {
-  return status === 'DRAFT' ? 'default' : 'secondary'
-}
-
-export function dropStatusBadgeClassName(status: string) {
-  return status === 'DRAFT' ? 'rounded-sm bg-[#B18155] text-white' : 'rounded-sm'
-}
-
 // 목록 행(DropRow)과 상세 팝업이 같은 쿼리 키를 써서, 행에서 이미 불러온 제작안
 // 정보가 있으면 팝업을 열 때 다시 네트워크를 타지 않고 캐시를 그대로 재사용한다.
 export function productionScenariosQueryKey(dropId: string) {
@@ -64,13 +50,12 @@ export function DropDetailDialog({
         {drop && (
           <>
             <DialogHeader className="flex-row items-center justify-between space-y-0">
-              <DialogTitle>{drop.name ?? drop.templateName + ' Drop'}</DialogTitle>
-              <Badge
-                variant={dropStatusBadgeVariant(drop.status)}
-                className={dropStatusBadgeClassName(drop.status)}
-              >
-                <span className="translate-y-px">{DROP_STATUS_LABEL[drop.status] ?? drop.status}</span>
-              </Badge>
+              <DialogTitle>{drop.name ?? '미확정 드롭'}</DialogTitle>
+              {drop.status === 'CONFIRMED' && (
+                <Badge variant="secondary" className="rounded-sm">
+                  <span className="translate-y-px">제작 완료</span>
+                </Badge>
+              )}
             </DialogHeader>
 
             {scenariosQuery.isLoading ? (
