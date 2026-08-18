@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
-import { itemsLabel } from '@/pages/ProductionScenario'
+import { itemsLabel, SCENARIO_TITLE } from '@/pages/ProductionScenario'
 import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
 import { Badge } from '@/components/ui/badge'
@@ -12,8 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 // 목록 행(DropRow)과 상세 팝업이 같은 쿼리 키를 써서, 행에서 이미 불러온 제작안
 // 정보가 있으면 팝업을 열 때 다시 네트워크를 타지 않고 캐시를 그대로 재사용한다.
@@ -64,16 +66,36 @@ export function DropDetailDialog({
               <FormMessage variant="muted">아직 계산된 제작 정보가 없습니다.</FormMessage>
             ) : (
               <div className="flex flex-col gap-2.5">
-                <Input readOnly value={itemsLabel(selectedScenario)} />
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Input readOnly value={`${Math.round(selectedScenario.materialUtilizationRate)}%`} />
+                <FormField label="템플릿" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input readOnly value={drop.templateName} />
+                </FormField>
+                <FormField label="구성" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input readOnly value={itemsLabel(selectedScenario)} />
+                </FormField>
+                <FormField label="제작안" className="[&_label]:text-xs [&_label]:text-muted-foreground">
                   <Input
                     readOnly
-                    value={
-                      drop.expectedProductionDays != null ? `${drop.expectedProductionDays}일` : '기간 미정'
-                    }
+                    value={SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType}
                   />
+                </FormField>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <FormField label="활용률" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                    <Input readOnly value={`${Math.round(selectedScenario.materialUtilizationRate)}%`} />
+                  </FormField>
+                  <FormField label="예상 제작기간" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                    <Input
+                      readOnly
+                      value={
+                        drop.expectedProductionDays != null ? `${drop.expectedProductionDays}일` : '기간 미정'
+                      }
+                    />
+                  </FormField>
                 </div>
+                {drop.introText && (
+                  <FormField label="AI 소개문" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                    <Textarea readOnly value={drop.introText} className="min-h-20" />
+                  </FormField>
+                )}
               </div>
             )}
 

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
 import { FlowFrame } from '@/components/ui/flow-frame'
+import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
 import { Input } from '@/components/ui/input'
 import { PanelSection } from '@/components/ui/panel-section'
@@ -146,27 +147,41 @@ export function DropConfirmPage() {
               </p>
             ) : (
               <>
-                <Input readOnly value={TEMPLATE_NAME} />
-                <Input readOnly value={itemsLabel(selectedScenario)} />
-                <Input readOnly value={`${Math.round(selectedScenario.materialUtilizationRate)}%`} />
-                <Input
-                  readOnly
-                  value={SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType}
-                />
-                <Input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Drop 이름"
-                  readOnly={isConfirmed}
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  value={expectedProductionDays}
-                  onChange={(event) => setExpectedProductionDays(event.target.value)}
-                  placeholder="예상 제작기간 (일)"
-                  readOnly={isConfirmed}
-                />
+                <FormField label="템플릿" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input readOnly value={TEMPLATE_NAME} />
+                </FormField>
+                <FormField label="구성" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input readOnly value={itemsLabel(selectedScenario)} />
+                </FormField>
+                <FormField label="활용률" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input readOnly value={`${Math.round(selectedScenario.materialUtilizationRate)}%`} />
+                </FormField>
+                <FormField label="제작안" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input
+                    readOnly
+                    value={SCENARIO_TITLE[selectedScenario.scenarioType] ?? selectedScenario.scenarioType}
+                  />
+                </FormField>
+                <FormField label="이름" htmlFor="dropName" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input
+                    id="dropName"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Drop 이름"
+                    readOnly={isConfirmed}
+                  />
+                </FormField>
+                <FormField label="예상 제작기간" htmlFor="expectedDays" className="[&_label]:text-xs [&_label]:text-muted-foreground">
+                  <Input
+                    id="expectedDays"
+                    type="number"
+                    min={1}
+                    value={expectedProductionDays}
+                    onChange={(event) => setExpectedProductionDays(event.target.value)}
+                    placeholder="예상 제작기간 (일)"
+                    readOnly={isConfirmed}
+                  />
+                </FormField>
                 {confirmMutation.isError && (
                   <FormMessage>
                     {apiErrorMessage(confirmMutation.error, 'Drop 확정에 실패했습니다. 다시 시도해주세요.')}
