@@ -154,7 +154,10 @@ export function MaterialCandidatesPage() {
         const mainCandidate = candidates.find(
           (candidate) => candidate.material.id === selection.mainMaterial.id,
         )
-        if (mainCandidate) setMainCandidateId(mainCandidate.candidateId)
+        // 저장된 조합은 있지만(f3에서 조건을 바꿔 재계산한 뒤라) 그 소재가 지금 후보 목록에
+        // 없으면 저장된 적 없는 새 진입과 똑같이 AI 추천 1순위로 대체한다. 그냥 두면 아무 것도
+        // 선택 안 된 채로 남아서 "다음" 버튼이 계속 비활성 상태가 된다.
+        setMainCandidateId(mainCandidate ? mainCandidate.candidateId : candidates[0].candidateId)
 
         const pointMaterialId = selection.pointMaterial?.id
         const pointCandidate = pointMaterialId

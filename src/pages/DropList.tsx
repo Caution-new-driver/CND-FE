@@ -69,7 +69,7 @@ function DropRow({
         <p className="truncate text-[11px] text-muted-foreground">{summary}</p>
       </div>
       {drop.status === 'CONFIRMED' && (
-        <Badge variant="secondary" className="rounded-sm">
+        <Badge variant="secondary" className="rounded-sm text-white">
           <span className="translate-y-px">제작 완료</span>
         </Badge>
       )}

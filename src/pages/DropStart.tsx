@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import type { DropResponse, TemplateResponse } from '@/types/drop'
@@ -14,7 +14,14 @@ const MINI_BAG_TEMPLATE_NAME = '미니백'
 
 export function DropStartPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated } = useAuth()
+
+  // f3 "이전 단계로"로 되돌아온 경우, 여기서 "다음"을 누를 때 또 새 Drop을 만들면
+  // 방금 쓰던 Drop은 고아로 남고 매번 하나씩 더 생긴다. state로 넘어온 dropId가 있으면
+  // 새로 만들지 않고 그 Drop으로 그대로 이어간다("새 Drop 만들기"로 들어온 경우엔
+  // state가 없으니 평소대로 새로 만든다).
+  const existingDropId = (location.state as { dropId?: string } | null)?.dropId
 
   const { data: template, isError: isTemplateError } = useQuery({
     queryKey: ['template', MINI_BAG_TEMPLATE_NAME],
@@ -26,6 +33,14 @@ export function DropStartPage() {
     mutationFn: () => apiFetch<DropResponse>('/api/drops', { method: 'POST' }),
     onSuccess: (drop) => navigate(`/drops/${drop.id}/design-requirement`),
   })
+
+  function handleNext() {
+    if (existingDropId) {
+      navigate(`/drops/${existingDropId}/design-requirement`)
+    } else {
+      mutate()
+    }
+  }
 
   return (
     <CenteredPage>
@@ -70,7 +85,7 @@ export function DropStartPage() {
           <Button variant="link" onClick={() => navigate('/materials')}>
             새 소재 등록하기
           </Button>
-          <Button onClick={() => mutate()} disabled={isPending || !template}>
+          <Button onClick={handleNext} disabled={isPending || !template}>
             {isPending ? '기획을 시작하는 중...' : 'Drop 기획 시작하기 (Drop 생성)'}
           </Button>
         </CardFooter>

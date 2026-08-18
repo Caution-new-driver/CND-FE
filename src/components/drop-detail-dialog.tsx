@@ -52,7 +52,7 @@ export function DropDetailDialog({
             <DialogHeader className="flex-row items-center justify-between space-y-0">
               <DialogTitle>{drop.name ?? '미확정 드롭'}</DialogTitle>
               {drop.status === 'CONFIRMED' && (
-                <Badge variant="secondary" className="rounded-sm">
+                <Badge variant="secondary" className="rounded-sm text-white">
                   <span className="translate-y-px">제작 완료</span>
                 </Badge>
               )}
