@@ -51,6 +51,31 @@ function FlowFrame({
 }) {
   const navigate = useNavigate()
   const tabs = buildFlowTabs(dropId)
+  const sequentialTabs = tabs.filter((tab) => !tab.alwaysClickable)
+  const utilityTabs = tabs.filter((tab) => tab.alwaysClickable)
+
+  function renderTab({ step, label, to, alwaysClickable }: FlowTab) {
+    const isActive = step === activeStep
+    const isClickable = Boolean(to) && !isActive && (alwaysClickable || step <= activeStep)
+    return (
+      <button
+        key={step}
+        type="button"
+        disabled={!isClickable}
+        onClick={() => to && navigate(to)}
+        className={cn(
+          "shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
+          isActive
+            ? "bg-brand-cognac text-brand-cognac-foreground"
+            : "bg-muted text-muted-foreground",
+          isClickable && "cursor-pointer hover:bg-muted-foreground/20",
+          !isClickable && !isActive && "cursor-default",
+        )}
+      >
+        {label}
+      </button>
+    )
+  }
 
   return (
     <div
@@ -61,29 +86,10 @@ function FlowFrame({
       )}
     >
       <div className="bg-card px-4 pt-3">
-        <div className="flex gap-1 overflow-x-auto">
-          {tabs.map(({ step, label, to, alwaysClickable }) => {
-            const isActive = step === activeStep
-            const isClickable = Boolean(to) && !isActive && (alwaysClickable || step <= activeStep)
-            return (
-              <button
-                key={step}
-                type="button"
-                disabled={!isClickable}
-                onClick={() => to && navigate(to)}
-                className={cn(
-                  "shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
-                  isActive
-                    ? "bg-brand-cognac text-brand-cognac-foreground"
-                    : "bg-muted text-muted-foreground",
-                  isClickable && "cursor-pointer hover:bg-muted-foreground/20",
-                  !isClickable && !isActive && "cursor-default",
-                )}
-              >
-                {label}
-              </button>
-            )
-          })}
+        <div className="flex items-end gap-1 overflow-x-auto">
+          {sequentialTabs.map(renderTab)}
+          {/* 순서상의 다음 단계가 아닌 탭(Drop 목록)은 프레임 가장 오른쪽 가장자리로 분리 */}
+          <div className="ml-auto flex shrink-0 gap-1">{utilityTabs.map(renderTab)}</div>
         </div>
       </div>
       <div className="bg-brand-cognac p-4">{children}</div>
