@@ -204,10 +204,18 @@ export function DropConfirmPage() {
                     </Button>
                     <Button
                       size="sm"
-                      disabled={saveIntroMutation.isPending || !introText.trim()}
+                      disabled={
+                        saveIntroMutation.isPending ||
+                        !introText.trim() ||
+                        introText === savedIntroText
+                      }
                       onClick={() => saveIntroMutation.mutate()}
                     >
-                      {saveIntroMutation.isPending ? '저장 중...' : '저장'}
+                      {saveIntroMutation.isPending
+                        ? '저장 중...'
+                        : introText === savedIntroText
+                          ? '저장완료'
+                          : '저장'}
                     </Button>
                   </div>
                 </div>
