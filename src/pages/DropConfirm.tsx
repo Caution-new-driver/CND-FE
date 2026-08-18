@@ -109,7 +109,7 @@ export function DropConfirmPage() {
 
   return (
     <CenteredPage>
-      <FlowFrame activeStep={6} dropId={dropId} maxWidthClassName="max-w-3xl">
+      <FlowFrame activeStep={6} dropId={dropId}>
       <Card className="w-full">
         <CardHeader>
           <CardTitle>RUN Drop 확정 · 소개문</CardTitle>

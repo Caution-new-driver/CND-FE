@@ -233,7 +233,7 @@ export function MaterialRegistrationPage() {
 
   return (
     <CenteredPage>
-      <FlowFrame activeStep={1} maxWidthClassName="max-w-4xl">
+      <FlowFrame activeStep={1}>
       <Card className="w-full">
         <CardHeader>
           <CardTitle>소재 등록 &amp; AI 태깅 확인</CardTitle>

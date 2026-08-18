@@ -35,7 +35,7 @@ function buildFlowTabs(dropId: string | undefined): FlowTab[] {
 function FlowFrame({
   activeStep,
   dropId,
-  maxWidthClassName = "max-w-2xl",
+  maxWidthClassName = "max-w-4xl",
   className,
   children,
 }: {
