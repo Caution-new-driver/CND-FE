@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { resolveResumePath } from '@/lib/resume-drop'
 import type { DropResponse, TemplateResponse } from '@/types/drop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,21 @@ export function DropStartPage() {
     enabled: isAuthenticated,
   })
 
+  // 뒤로가기 방지(replace: true)는 앱 내부 네비게이션만 막아서, 사용자가 주소창에
+  // /drops/new를 직접 입력해 들어오는 경로는 여전히 열려있다. 그 경로로 들어와서
+  // 무심코 "Drop 기획 시작하기"를 누르면 진행 중이던 Drop과 별개로 새 Drop이 하나 더
+  // 생겨 미확정 상태로 방치되므로, 진입 시 미확정 Drop이 있으면 미리 알려준다.
+  const { data: draftDrops } = useQuery({
+    queryKey: ['drops', 'DRAFT'],
+    queryFn: () => apiFetch<DropResponse[]>('/api/drops?status=DRAFT'),
+    enabled: isAuthenticated,
+  })
+
+  const resumeMutation = useMutation({
+    mutationFn: (dropId: string) => resolveResumePath(dropId),
+    onSuccess: (path) => navigate(path),
+  })
+
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => apiFetch<DropResponse>('/api/drops', { method: 'POST' }),
     // replace: true로 f2 히스토리 항목을 지워서, f3에서 브라우저 뒤로가기를 눌러도
@@ -38,6 +54,35 @@ export function DropStartPage() {
           <CardTitle>새 RUN Drop 기획하기</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          {draftDrops && draftDrops.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3.5">
+              <p className="text-[11.5px] font-bold text-destructive">
+                이미 진행 중인 미확정 Drop이 {draftDrops.length}개 있어요. 새로 만들면 기존 Drop과는
+                별개로 하나 더 생성됩니다.
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {draftDrops.map((drop) => (
+                  <div
+                    key={drop.id}
+                    className="flex items-center justify-between rounded-md border border-border bg-background p-2"
+                  >
+                    <span className="text-[11px] text-muted-foreground">
+                      {drop.name ?? '미확정 Drop'}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="rounded-sm"
+                      disabled={resumeMutation.isPending}
+                      onClick={() => resumeMutation.mutate(drop.id)}
+                    >
+                      <span className="translate-y-px">이어서 제작</span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {isTemplateError && <FormMessage>템플릿 정보를 불러오지 못했습니다.</FormMessage>}
           {template && (
             <div className="flex flex-col gap-2.5 rounded-md border border-border p-3.5">
