@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { cloudinaryThumbnail } from '@/lib/cloudinary-image'
 import type { MaterialAiTagResult, MaterialResponse } from '@/types/material'
@@ -432,7 +432,11 @@ export function MaterialRegistrationPage() {
             }
           >
             {deleteMutation.isError && (
-              <FormMessage>삭제에 실패했습니다. 다시 시도해주세요.</FormMessage>
+              <FormMessage>
+                {deleteMutation.error instanceof ApiError
+                  ? deleteMutation.error.message
+                  : '삭제에 실패했습니다. 다시 시도해주세요.'}
+              </FormMessage>
             )}
             {materialsQuery.isLoading ? (
               <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
@@ -460,10 +464,23 @@ export function MaterialRegistrationPage() {
                         {material.materialCode ?? '-'} ({MATERIAL_TYPE_LABEL[material.materialType]})
                       </span>
                       <div className="flex items-center gap-2">
+                        {material.status === 'RESERVED' && (
+                          <Badge
+                            variant="secondary"
+                            title="제작에 사용 중이라 삭제할 수 없습니다."
+                          >
+                            제작 중
+                          </Badge>
+                        )}
+                        {material.status === 'DEPLETED' && (
+                          <Badge variant="outline" title="제작이 완료된 소재라 삭제할 수 없습니다.">
+                            제작 완료
+                          </Badge>
+                        )}
                         <span className="text-muted-foreground">
                           {material.quantity != null ? `수량 ${material.quantity}` : '-'}
                         </span>
-                        {isEditingList && (
+                        {isEditingList && material.status === 'AVAILABLE' && (
                           <Button
                             type="button"
                             variant="ghost"
