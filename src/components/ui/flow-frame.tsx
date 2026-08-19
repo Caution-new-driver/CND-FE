@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { cn } from "@/lib/utils"
@@ -54,19 +54,33 @@ function FlowFrame({
   const sequentialTabs = tabs.filter((tab) => !tab.alwaysClickable)
   const utilityTabs = tabs.filter((tab) => tab.alwaysClickable)
 
+  // 활성 탭이 바뀔 때 배경색을 즉시 스냅하는 대신, 이전 탭 자리에서 새 탭 자리로 슥
+  // 미끄러져 이동하는 것처럼 보이도록 별도의 배경 조각(indicator)을 하나만 두고
+  // 그 위치·너비만 트랜지션시킨다. 개별 탭 버튼 자체는 활성이어도 배경을 투명하게 둔다.
+  const tabsRowRef = useRef<HTMLDivElement>(null)
+  const activeTabRef = useRef<HTMLButtonElement>(null)
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const activeButton = activeTabRef.current
+    if (!activeButton) return
+    setIndicator({ left: activeButton.offsetLeft, width: activeButton.offsetWidth })
+  }, [activeStep])
+
   function renderTab({ step, label, to, alwaysClickable }: FlowTab) {
     const isActive = step === activeStep
     const isClickable = Boolean(to) && !isActive && (alwaysClickable || step <= activeStep)
     return (
       <button
         key={step}
+        ref={isActive ? activeTabRef : undefined}
         type="button"
         disabled={!isClickable}
         onClick={() => to && navigate(to)}
         className={cn(
-          "shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
+          "relative z-10 shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
           isActive
-            ? "bg-brand-cognac text-brand-cognac-foreground"
+            ? "bg-transparent text-brand-cognac-foreground"
             : isClickable
               ? "bg-brand-cognac-muted text-brand-cognac-foreground"
               : "bg-muted text-muted-foreground",
@@ -88,7 +102,18 @@ function FlowFrame({
       )}
     >
       <div className="bg-card px-4 pt-3">
-        <div className="flex items-end gap-1 overflow-x-auto">
+        <div ref={tabsRowRef} className="relative flex items-end gap-1 overflow-x-auto">
+          {indicator && (
+            // 페이지 이동은 라우트 전환이라 FlowFrame이 매번 새로 마운트되고, 그래서
+            // "이전 탭 → 새 탭"으로 실제로 미끄러지는 애니메이션은 만들 수 없다(이전 위치를
+            // 그릴 프레임 자체가 없음). 대신 매번 새로 마운트되는 이 점을 활용해, 진입할 때마다
+            // 활성 탭 자리에 팝/페이드로 살짝 등장하는 연출로 대신한다.
+            <div
+              key={activeStep}
+              className="bg-brand-cognac animate-in fade-in-0 zoom-in-95 absolute bottom-0 z-0 rounded-t-lg duration-300 ease-out"
+              style={{ left: indicator.left, width: indicator.width, top: 0 }}
+            />
+          )}
           {sequentialTabs.map(renderTab)}
           {/* 순서상의 다음 단계가 아닌 탭(Drop 목록)은 프레임 가장 오른쪽 가장자리로 분리 */}
           <div className="ml-auto flex shrink-0 gap-1">{utilityTabs.map(renderTab)}</div>
