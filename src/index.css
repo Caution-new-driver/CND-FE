@@ -70,6 +70,7 @@
     --color-background: var(--background);
     --color-brand-cognac: var(--brand-cognac);
     --color-brand-cognac-foreground: var(--brand-cognac-foreground);
+    --color-brand-cognac-muted: var(--brand-cognac-muted);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -83,6 +84,8 @@
     /* MCM 브랜드 모티브 팔레트: 배경(브라우저 프레임)=꼬냑, 상태 버튼=카라멜, 액션 버튼=로고 블랙 */
     --brand-cognac: #8b4a2e;
     --brand-cognac-foreground: #f3e6d8;
+    /* 뒤로 갈 수 있는(이미 지나온) 탭 표시용 — 꼬냑에서 채도만 낮춘 톤 */
+    --brand-cognac-muted: color-mix(in oklch, var(--brand-cognac), gray 45%);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

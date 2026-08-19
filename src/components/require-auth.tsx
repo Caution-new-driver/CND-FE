@@ -43,10 +43,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     <>
       {children}
       <Dialog open={!isAuthenticated} disablePointerDismissal>
-        <DialogContent showCloseButton={false} className="max-w-xs">
+        <DialogContent showCloseButton={false} className="sm:max-w-lg">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <DialogHeader>
-              <DialogTitle>next:R.U.N. 로그인</DialogTitle>
+              <DialogTitle>next:R.U.N. — 잉여 소재로 다음 RUN을 기획하는 AI 상품기획 도구</DialogTitle>
               <DialogDescription>MCM 관계자 공용 비밀번호를 입력하세요.</DialogDescription>
             </DialogHeader>
             <FormField label="비밀번호" htmlFor="login-password">

@@ -55,7 +55,7 @@ export function DropDetailDialog({
               <DialogTitle>{drop.name ?? '미확정 드롭'}</DialogTitle>
               {drop.status === 'CONFIRMED' && (
                 <Badge variant="secondary" className="rounded-sm text-white">
-                  <span className="translate-y-px">제작 완료</span>
+                  <span className="translate-y-px">확정 완료</span>
                 </Badge>
               )}
             </DialogHeader>

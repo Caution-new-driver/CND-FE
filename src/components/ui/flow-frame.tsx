@@ -67,8 +67,10 @@ function FlowFrame({
           "shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
           isActive
             ? "bg-brand-cognac text-brand-cognac-foreground"
-            : "bg-muted text-muted-foreground",
-          isClickable && "cursor-pointer hover:bg-muted-foreground/20",
+            : isClickable
+              ? "bg-brand-cognac-muted text-brand-cognac-foreground"
+              : "bg-muted text-muted-foreground",
+          isClickable && "cursor-pointer hover:brightness-110",
           !isClickable && !isActive && "cursor-default",
         )}
       >
