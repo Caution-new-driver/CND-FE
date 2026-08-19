@@ -8,9 +8,8 @@ import { DropDetailDialog, productionScenariosQueryKey } from '@/components/drop
 import { itemsLabel } from '@/pages/ProductionScenario'
 import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
 import {
   Dialog,
@@ -65,19 +64,24 @@ function DropRow({
     <div className="flex items-center gap-3 rounded-md border border-border p-3">
       <div className="size-14 shrink-0 rounded-md border border-border bg-muted" />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="truncate text-[12.5px] font-bold">{drop.name ?? '미확정 DROP'}</p>
+        <p className="truncate text-[12.5px] font-bold">{drop.name ?? '미확정 Drop'}</p>
         <p className="truncate text-[11px] text-muted-foreground">{summary}</p>
       </div>
       {drop.status === 'CONFIRMED' && (
-        <Badge variant="secondary" className="rounded-sm text-white">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="rounded-sm disabled:opacity-100"
+          disabled
+        >
           <span className="translate-y-px">확정 완료</span>
-        </Badge>
+        </Button>
       )}
       {drop.status === 'DRAFT' && (
         <Button
           size="sm"
           variant="secondary"
-          className="rounded-sm text-white"
+          className="rounded-sm"
           disabled={resumeMutation.isPending}
           onClick={() => resumeMutation.mutate()}
         >
@@ -104,6 +108,7 @@ function DropRow({
 }
 
 export function DropListPage() {
+  const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   const [selectedDrop, setSelectedDrop] = useState<DropResponse | null>(null)
@@ -131,6 +136,11 @@ export function DropListPage() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle>전체 Drop 목록</CardTitle>
+            <CardAction>
+              <Button size="sm" variant="secondary" className="rounded-sm" onClick={() => navigate('/')}>
+                처음화면으로 돌아가기
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {dropsQuery.isLoading ? (
@@ -168,7 +178,7 @@ export function DropListPage() {
               <DialogHeader>
                 <DialogTitle>Drop 삭제</DialogTitle>
                 <DialogDescription>
-                  "{dropPendingDelete.name ?? '미확정 DROP'}"을(를) 삭제하시겠습니까? 저장된 조건·선택·계산
+                  "{dropPendingDelete.name ?? '미확정 Drop'}"을(를) 삭제하시겠습니까? 저장된 조건·선택·계산
                   결과가 모두 사라지며 되돌릴 수 없습니다.
                 </DialogDescription>
               </DialogHeader>

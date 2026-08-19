@@ -4,7 +4,6 @@ import { useAuth } from '@/lib/auth'
 import { itemsLabel, SCENARIO_TITLE } from '@/pages/ProductionScenario'
 import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -54,9 +53,14 @@ export function DropDetailDialog({
             <DialogHeader className="flex-row items-center justify-between space-y-0">
               <DialogTitle>{drop.name ?? '미확정 드롭'}</DialogTitle>
               {drop.status === 'CONFIRMED' && (
-                <Badge variant="secondary" className="rounded-sm text-white">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-sm disabled:opacity-100"
+                  disabled
+                >
                   <span className="translate-y-px">확정 완료</span>
-                </Badge>
+                </Button>
               )}
             </DialogHeader>
 

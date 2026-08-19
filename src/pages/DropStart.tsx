@@ -24,7 +24,10 @@ export function DropStartPage() {
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: () => apiFetch<DropResponse>('/api/drops', { method: 'POST' }),
-    onSuccess: (drop) => navigate(`/drops/${drop.id}/design-requirement`),
+    // replace: true로 f2 히스토리 항목을 지워서, f3에서 브라우저 뒤로가기를 눌러도
+    // "Drop이 생성된 f2"로 돌아가지 않고 f1로 건너뛴다. 그렇지 않으면 뒤로가기 후
+    // "Drop 기획 시작하기"를 다시 눌렀을 때 미확정 Drop이 중복 생성된다.
+    onSuccess: (drop) => navigate(`/drops/${drop.id}/design-requirement`, { replace: true }),
   })
 
   return (
@@ -66,7 +69,7 @@ export function DropStartPage() {
           )}
           {isError && <FormMessage>Drop 생성에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
-        <CardFooter className="justify-end gap-3">
+        <CardFooter className="justify-between">
           <Button variant="link" onClick={() => navigate('/materials')}>
             새 소재 등록하기
           </Button>

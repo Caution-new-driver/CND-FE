@@ -67,6 +67,14 @@ export function MaterialCandidatesPage() {
   const [pointCandidateId, setPointCandidateId] = useState('')
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<Record<string, string>>({})
 
+  // 주 소재를 바꾸면 포인트 소재를 "사용 안 함"으로 초기화한다. 그대로 두면 방금 주
+  // 소재로 고른 후보가 포인트 소재 목록에서도 사라지지 않은 채(과거 선택값) 남을 수 있고,
+  // 주 소재와 같은 후보가 포인트로 선택된 상태로 남는 등 조합이 꼬일 수 있다.
+  function handleMainCandidateChange(candidateId: string) {
+    setMainCandidateId(candidateId)
+    setPointCandidateId('')
+  }
+
   // 조합 선택 상태를 전부 비운다 (재계산·재진입 시 이전 선택이 새 후보 목록과
   // 엇갈리지 않도록 함께 초기화).
   function resetSelection() {
@@ -239,7 +247,7 @@ export function MaterialCandidatesPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <PanelSection
-            title="AI 추천 후보 (최대 3개)"
+            title="AI 추천 후보 (최대 3개) - 주 소재 선택"
             action={
               <Button
                 variant="secondary"
@@ -267,7 +275,7 @@ export function MaterialCandidatesPage() {
                     <button
                       key={candidate.candidateId}
                       type="button"
-                      onClick={() => setMainCandidateId(candidate.candidateId)}
+                      onClick={() => handleMainCandidateChange(candidate.candidateId)}
                       className={cn(
                         'flex flex-col items-start gap-2 rounded-md border p-2.5 text-left transition-colors',
                         isSelected ? 'border-primary ring-1 ring-primary' : 'border-border hover:border-input',
@@ -321,7 +329,10 @@ export function MaterialCandidatesPage() {
                   }
                   className="[&_label]:text-xs [&_label]:text-muted-foreground"
                 >
-                  <Select value={mainCandidateId} onValueChange={(value) => setMainCandidateId(value ?? '')}>
+                  <Select
+                    value={mainCandidateId}
+                    onValueChange={(value) => handleMainCandidateChange(value ?? '')}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="주 소재 선택">
                         {(value: string) => {
