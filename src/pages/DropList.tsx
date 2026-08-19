@@ -10,7 +10,7 @@ import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
 import {
   Dialog,
@@ -104,7 +104,6 @@ function DropRow({
 }
 
 export function DropListPage() {
-  const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   const [selectedDrop, setSelectedDrop] = useState<DropResponse | null>(null)
@@ -132,11 +131,6 @@ export function DropListPage() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle>전체 Drop 목록</CardTitle>
-            <CardAction>
-              <Button className="rounded-sm" onClick={() => navigate('/drops/new')}>
-                새 Drop 만들기
-              </Button>
-            </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {dropsQuery.isLoading ? (
