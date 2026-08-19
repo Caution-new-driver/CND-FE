@@ -19,7 +19,7 @@ export const PRODUCT_TYPE_LABEL: Record<string, string> = {
 
 export const SCENARIO_TITLE: Record<string, string> = {
   MAIN_ONLY: '미니백 단독',
-  WITH_LUGGAGE_TAG: 'next:R.U.N 제안',
+  WITH_LUGGAGE_TAG: 'next:R.U.N. 제안',
 }
 
 // 잔여 소재로 러기지 태그까지 추가 제작하는 안을 기본 추천으로 보여준다.

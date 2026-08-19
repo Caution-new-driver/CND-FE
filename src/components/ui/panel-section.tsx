@@ -23,7 +23,7 @@ function PanelSection({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <h2 className="text-[12.5px] font-bold">{title}</h2>
+          <h2 className="font-heading text-[15px] font-bold">{title}</h2>
           {titleExtra}
         </div>
         {action}

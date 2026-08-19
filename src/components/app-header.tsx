@@ -7,7 +7,7 @@ export function AppHeader() {
 
   return (
     <header className="relative flex h-24 items-end justify-between border-b border-border px-6 pb-2">
-      <span className="text-sm font-semibold">next:R.U.N.</span>
+      <span className="font-brand text-[25px] font-semibold">next:R.U.N.</span>
       <img
         src={mcmLogo}
         alt="MCM"
