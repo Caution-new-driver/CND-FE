@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { cloudinaryThumbnail } from '@/lib/cloudinary-image'
 import type { MaterialAiTagResult, MaterialResponse } from '@/types/material'
 import {
   MATERIAL_COLOR_LABEL,
@@ -449,13 +450,15 @@ export function MaterialRegistrationPage() {
                   >
                     {material.imageUrlFull && (
                       <img
-                        src={material.imageUrlFull}
+                        src={cloudinaryThumbnail(material.imageUrlFull)}
                         alt=""
                         className="size-10 shrink-0 rounded object-cover"
                       />
                     )}
                     <div className="flex flex-1 items-center justify-between">
-                      <span className="font-bold">{MATERIAL_TYPE_LABEL[material.materialType]}</span>
+                      <span className="font-bold">
+                        {material.materialCode ?? '-'} ({MATERIAL_TYPE_LABEL[material.materialType]})
+                      </span>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">
                           {material.quantity != null ? `수량 ${material.quantity}` : '-'}
@@ -502,14 +505,14 @@ export function MaterialRegistrationPage() {
                   <div className="flex gap-3">
                     {selectedMaterial.imageUrlFull && (
                       <img
-                        src={selectedMaterial.imageUrlFull}
+                        src={cloudinaryThumbnail(selectedMaterial.imageUrlFull)}
                         alt="전체샷"
                         className="size-20 rounded border border-input object-cover"
                       />
                     )}
                     {selectedMaterial.imageUrlCloseup && (
                       <img
-                        src={selectedMaterial.imageUrlCloseup}
+                        src={cloudinaryThumbnail(selectedMaterial.imageUrlCloseup)}
                         alt="클로즈업"
                         className="size-20 rounded border border-input object-cover"
                       />

@@ -70,7 +70,7 @@ function DropRow({
       </div>
       {drop.status === 'CONFIRMED' && (
         <Badge variant="secondary" className="rounded-sm text-white">
-          <span className="translate-y-px">제작 완료</span>
+          <span className="translate-y-px">확정 완료</span>
         </Badge>
       )}
       {drop.status === 'DRAFT' && (

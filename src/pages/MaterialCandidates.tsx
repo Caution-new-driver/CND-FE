@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { cloudinaryThumbnail } from '@/lib/cloudinary-image'
 import { readCache, writeCache } from '@/lib/persisted-cache'
 import { cn } from '@/lib/utils'
 import { MATERIAL_COLOR_LABEL, MATERIAL_TYPE_LABEL } from '@/lib/material-options'
@@ -275,7 +276,7 @@ export function MaterialCandidatesPage() {
                       <div className="h-16 w-full overflow-hidden rounded bg-muted">
                         {candidate.material.imageUrlFull && (
                           <img
-                            src={candidate.material.imageUrlFull}
+                            src={cloudinaryThumbnail(candidate.material.imageUrlFull)}
                             alt=""
                             className="size-full object-cover"
                           />
