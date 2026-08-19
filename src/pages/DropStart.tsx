@@ -68,6 +68,9 @@ export function DropStartPage() {
                   >
                     <span className="text-[11px] text-muted-foreground">
                       {drop.name ?? '미확정 Drop'}
+                      <span className="ml-1.5 text-[10px]">
+                        · {new Date(drop.createdAt).toLocaleString('ko-KR')} 생성
+                      </span>
                     </span>
                     <Button
                       size="sm"
