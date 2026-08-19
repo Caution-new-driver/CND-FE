@@ -289,7 +289,7 @@ export function MaterialRegistrationPage() {
                 <Loader2 className="size-3 animate-spin" /> AI 분석 중...
               </p>
             ) : previewMutation.data ? (
-              <>
+              <div className="animate-in fade-in-0 slide-in-from-top-1 flex flex-col gap-2.5 duration-300">
                 <div className="flex gap-3">
                   <div className="flex-1 rounded-lg border border-input px-2.5 py-1.5 text-[12px]">
                     {MATERIAL_COLOR_LABEL[previewMutation.data.color]}
@@ -314,7 +314,7 @@ export function MaterialRegistrationPage() {
                     특이사항: {previewMutation.data.surfaceNotes}
                   </p>
                 )}
-              </>
+              </div>
             ) : (
               <p className="py-2 text-[11.5px] text-muted-foreground">
                 소재 사진을 업로드하면 AI 태깅 결과가 여기 표시됩니다.

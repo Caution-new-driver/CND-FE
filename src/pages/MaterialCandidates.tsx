@@ -40,6 +40,32 @@ function candidateLabel(candidate: MaterialCandidateResponse) {
 
 const NO_POINT_MATERIAL = '__none__'
 
+// 추천 후보 카드가 새로 나타날 때 매치 스코어가 0에서 실제 값까지 올라가며 표시되는
+// 연출. candidateId가 재계산마다 새로 발급되므로 그걸 key로 넘기면 새 후보가 뜰 때만
+// 자연스럽게 애니메이션이 다시 시작된다(같은 카드에서 선택 상태만 바뀔 때는 재실행 안 됨).
+function AnimatedMatchScore({ value }: { value: number }) {
+  const target = Math.round(value)
+  const [display, setDisplay] = useState(0)
+
+  useEffect(() => {
+    const durationMs = 700
+    const startTime = performance.now()
+    let frameId: number
+
+    function tick(now: number) {
+      const progress = Math.min((now - startTime) / durationMs, 1)
+      const eased = 1 - (1 - progress) ** 3
+      setDisplay(Math.round(target * eased))
+      if (progress < 1) frameId = requestAnimationFrame(tick)
+    }
+
+    frameId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frameId)
+  }, [target])
+
+  return <>{display}%</>
+}
+
 function accessoryLabel(accessory: AccessoryResponse) {
   return `${accessory.accessoryType} · ${accessory.color}`
 }
@@ -299,7 +325,7 @@ export function MaterialCandidatesPage() {
                         </p>
                       )}
                       <Badge variant={isSelected ? 'default' : 'secondary'}>
-                        {Math.round(candidate.matchScore)}%
+                        <AnimatedMatchScore value={candidate.matchScore} />
                       </Badge>
                     </button>
                   )
