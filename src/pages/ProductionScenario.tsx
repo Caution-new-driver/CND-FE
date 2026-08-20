@@ -199,7 +199,7 @@ export function ProductionScenarioPage() {
                         >
                           {scenario.selected
                             ? '선택됨'
-                            : selectMutation.isPending
+                            : selectMutation.isPending && selectMutation.variables === scenario.scenarioId
                               ? '선택 중...'
                               : '이 제작안 선택'}
                         </Button>
