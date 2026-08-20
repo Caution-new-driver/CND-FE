@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { cloudinaryThumbnail } from '@/lib/cloudinary-image'
 import { readCache, writeCache } from '@/lib/persisted-cache'
@@ -453,7 +453,11 @@ export function MaterialCandidatesPage() {
           </PanelSection>
 
           {confirmMutation.isError && (
-            <FormMessage>확정에 실패했습니다. 다시 시도해주세요.</FormMessage>
+            <FormMessage>
+              {confirmMutation.error instanceof ApiError
+                ? confirmMutation.error.message
+                : '확정에 실패했습니다. 다시 시도해주세요.'}
+            </FormMessage>
           )}
         </CardContent>
         <CardFooter className="justify-between">

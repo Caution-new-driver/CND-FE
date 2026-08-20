@@ -39,11 +39,14 @@ export function AppHeader() {
           </span>
         </span>
       </button>
-      <img
-        src={mcmLogo}
-        alt="MCM"
-        className="absolute top-1/2 left-1/2 h-[72px] w-auto -translate-x-1/2 -translate-y-1/2"
-      />
+      <a
+        href="https://www.mcmworldwide.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      >
+        <img src={mcmLogo} alt="MCM" className="h-[72px] w-auto" />
+      </a>
       {isAuthenticated && (
         <Button variant="ghost" size="sm" onClick={() => clearToken()}>
           로그아웃

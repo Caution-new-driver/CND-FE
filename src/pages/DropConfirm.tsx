@@ -28,6 +28,16 @@ function apiErrorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback
 }
 
+function isRegenerationsRemaining(
+  body: unknown,
+): body is { regenerationsRemaining: number } {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    typeof (body as { regenerationsRemaining?: unknown }).regenerationsRemaining === 'number'
+  )
+}
+
 export function DropConfirmPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
@@ -84,6 +94,13 @@ export function DropConfirmPage() {
       setIntroText(data.introText)
       setSavedIntroText(data.introText)
       setRegenerationsRemaining(data.regenerationsRemaining)
+    },
+    // 시도 횟수는 성공 여부와 무관하게 서버에서 이미 차감된 뒤라(백엔드 정책), 실패해도
+    // 화면의 "남은 횟수"가 낡은 값으로 남지 않도록 에러 응답에 실려온 최신 값으로 맞춘다.
+    onError: (error) => {
+      if (error instanceof ApiError && isRegenerationsRemaining(error.body)) {
+        setRegenerationsRemaining(error.body.regenerationsRemaining)
+      }
     },
   })
 
