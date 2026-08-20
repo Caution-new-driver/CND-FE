@@ -11,7 +11,7 @@ function CenteredPage({
   return (
     <div
       data-slot="centered-page"
-      className={cn("flex min-h-svh items-center justify-center p-6", className)}
+      className={cn("flex min-h-svh items-start justify-center p-6", className)}
       {...props}
     />
   )

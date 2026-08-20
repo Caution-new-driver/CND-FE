@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
-import { apiFetch } from '@/lib/api'
+import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { cloudinaryThumbnail } from '@/lib/cloudinary-image'
 import type { MaterialAiTagResult, MaterialResponse } from '@/types/material'
 import {
   MATERIAL_COLOR_LABEL,
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import { FlowFrame } from '@/components/ui/flow-frame'
 import {
   Dialog,
   DialogContent,
@@ -232,7 +234,8 @@ export function MaterialRegistrationPage() {
 
   return (
     <CenteredPage>
-      <Card className="w-full max-w-4xl">
+      <FlowFrame activeStep={1}>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>소재 등록 &amp; AI 태깅 확인</CardTitle>
         </CardHeader>
@@ -286,7 +289,7 @@ export function MaterialRegistrationPage() {
                 <Loader2 className="size-3 animate-spin" /> AI 분석 중...
               </p>
             ) : previewMutation.data ? (
-              <>
+              <div className="animate-in fade-in-0 slide-in-from-top-1 flex flex-col gap-2.5 duration-300">
                 <div className="flex gap-3">
                   <div className="flex-1 rounded-lg border border-input px-2.5 py-1.5 text-[12px]">
                     {MATERIAL_COLOR_LABEL[previewMutation.data.color]}
@@ -311,7 +314,7 @@ export function MaterialRegistrationPage() {
                     특이사항: {previewMutation.data.surfaceNotes}
                   </p>
                 )}
-              </>
+              </div>
             ) : (
               <p className="py-2 text-[11.5px] text-muted-foreground">
                 소재 사진을 업로드하면 AI 태깅 결과가 여기 표시됩니다.
@@ -337,7 +340,9 @@ export function MaterialRegistrationPage() {
               />
               <Select value={materialType} onValueChange={(value) => setMaterialType(value ?? '')}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="소재 종류" />
+                  <SelectValue placeholder="소재 종류">
+                    {MATERIAL_TYPE_LABEL[materialType as keyof typeof MATERIAL_TYPE_LABEL]}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_TYPE_OPTIONS.map((type) => (
@@ -349,7 +354,7 @@ export function MaterialRegistrationPage() {
               </Select>
               <Select value={grade} onValueChange={(value) => setGrade(value ?? '')}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="등급" />
+                  <SelectValue placeholder="등급">{grade ? `${grade}등급` : undefined}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {MATERIAL_GRADE_OPTIONS.map((g) => (
@@ -427,7 +432,11 @@ export function MaterialRegistrationPage() {
             }
           >
             {deleteMutation.isError && (
-              <FormMessage>삭제에 실패했습니다. 다시 시도해주세요.</FormMessage>
+              <FormMessage>
+                {deleteMutation.error instanceof ApiError
+                  ? deleteMutation.error.message
+                  : '삭제에 실패했습니다. 다시 시도해주세요.'}
+              </FormMessage>
             )}
             {materialsQuery.isLoading ? (
               <p className="py-2 text-[11.5px] text-muted-foreground">불러오는 중...</p>
@@ -445,18 +454,33 @@ export function MaterialRegistrationPage() {
                   >
                     {material.imageUrlFull && (
                       <img
-                        src={material.imageUrlFull}
+                        src={cloudinaryThumbnail(material.imageUrlFull)}
                         alt=""
                         className="size-10 shrink-0 rounded object-cover"
                       />
                     )}
                     <div className="flex flex-1 items-center justify-between">
-                      <span className="font-bold">{MATERIAL_TYPE_LABEL[material.materialType]}</span>
+                      <span className="font-bold">
+                        {material.materialCode ?? '-'} ({MATERIAL_TYPE_LABEL[material.materialType]})
+                      </span>
                       <div className="flex items-center gap-2">
+                        {material.status === 'RESERVED' && (
+                          <Badge
+                            variant="secondary"
+                            title="제작에 사용 중이라 삭제할 수 없습니다."
+                          >
+                            제작 중
+                          </Badge>
+                        )}
+                        {material.status === 'DEPLETED' && (
+                          <Badge variant="outline" title="제작이 완료된 소재라 삭제할 수 없습니다.">
+                            제작 완료
+                          </Badge>
+                        )}
                         <span className="text-muted-foreground">
                           {material.quantity != null ? `수량 ${material.quantity}` : '-'}
                         </span>
-                        {isEditingList && (
+                        {isEditingList && material.status === 'AVAILABLE' && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -498,14 +522,14 @@ export function MaterialRegistrationPage() {
                   <div className="flex gap-3">
                     {selectedMaterial.imageUrlFull && (
                       <img
-                        src={selectedMaterial.imageUrlFull}
+                        src={cloudinaryThumbnail(selectedMaterial.imageUrlFull)}
                         alt="전체샷"
                         className="size-20 rounded border border-input object-cover"
                       />
                     )}
                     {selectedMaterial.imageUrlCloseup && (
                       <img
-                        src={selectedMaterial.imageUrlCloseup}
+                        src={cloudinaryThumbnail(selectedMaterial.imageUrlCloseup)}
                         alt="클로즈업"
                         className="size-20 rounded border border-input object-cover"
                       />
@@ -533,6 +557,7 @@ export function MaterialRegistrationPage() {
           </Button>
         </CardFooter>
       </Card>
+      </FlowFrame>
     </CenteredPage>
   )
 }

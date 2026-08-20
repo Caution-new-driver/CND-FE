@@ -15,6 +15,12 @@ export interface AccessoryRequirement {
 export interface DropResponse {
   id: string
   status: string
+  // b13 확정 시점에 채워짐. 확정 전(DRAFT)에는 null.
+  name: string | null
+  introText: string | null
+  expectedProductionDays: number | null
+  createdAt: string
+  regenerationsRemaining: number
   templateId: string
   templateName: string
   patternPieces: PatternPiece[]
@@ -41,8 +47,6 @@ export interface DesignRequirementResponse {
   color: MaterialColor | null
   pattern: MaterialPattern | null
   minGrade: MaterialGrade | null
-  accessoryColor: AccessoryColor | null
-  usePointMaterial: boolean | null
 }
 
 // PATCH /api/drops/{dropId}/confirm 요청 (b13)
