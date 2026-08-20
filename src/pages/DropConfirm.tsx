@@ -14,6 +14,14 @@ import type { ProductionScenarioListResponse } from '@/types/production'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { CenteredPage } from '@/components/ui/centered-page'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { FlowFrame } from '@/components/ui/flow-frame'
 import { FormField } from '@/components/ui/form-field'
 import { FormMessage } from '@/components/ui/form-message'
@@ -53,6 +61,10 @@ export function DropConfirmPage() {
   // b13(Drop 확정)이 아직 안 끝났으면 null. 확정 응답에 AI 소개문 초안(b14)까지 같이 온다.
   const [confirmResult, setConfirmResult] = useState<DropConfirmResponse | null>(null)
   const [regenerationsRemaining, setRegenerationsRemaining] = useState<number | null>(null)
+  // Drop 확정 / 소개문 저장이 끝났을 때 안내 팝업으로 알려준다.
+  const [successPopup, setSuccessPopup] = useState<{ title: string; description: string } | null>(
+    null,
+  )
 
   const scenariosQuery = useQuery({
     queryKey: ['drops', dropId, 'production-scenarios'],
@@ -83,6 +95,10 @@ export function DropConfirmPage() {
       setRegenerationsRemaining(data.regenerationsRemaining)
       setIntroText(data.introText ?? '')
       setSavedIntroText(data.introText ?? '')
+      setSuccessPopup({
+        title: 'Drop이 확정되었습니다',
+        description: 'AI가 생성한 소개문 초안을 확인하고, 필요하면 수정 후 저장해주세요.',
+      })
     },
   })
 
@@ -114,6 +130,7 @@ export function DropConfirmPage() {
     onSuccess: (data) => {
       setSavedIntroText(data.introText)
       setRegenerationsRemaining(data.regenerationsRemaining)
+      setSuccessPopup({ title: '저장완료', description: '소개문이 저장되었습니다.' })
     },
   })
 
@@ -261,9 +278,6 @@ export function DropConfirmPage() {
                     {apiErrorMessage(saveIntroMutation.error, '저장에 실패했습니다. 다시 시도해주세요.')}
                   </FormMessage>
                 )}
-                {saveIntroMutation.isSuccess && !saveIntroMutation.isPending && (
-                  <p className="text-[10.5px] text-muted-foreground">저장되었습니다.</p>
-                )}
               </>
             )}
           </PanelSection>
@@ -297,6 +311,22 @@ export function DropConfirmPage() {
         </CardFooter>
       </Card>
       </FlowFrame>
+
+      <Dialog open={successPopup !== null} onOpenChange={(open) => !open && setSuccessPopup(null)}>
+        <DialogContent showCloseButton={false} className="max-w-xs">
+          {successPopup && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{successPopup.title}</DialogTitle>
+                <DialogDescription>{successPopup.description}</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={() => setSuccessPopup(null)}>확인</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </CenteredPage>
   )
 }
