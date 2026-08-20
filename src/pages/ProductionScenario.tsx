@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import type { DropResponse } from '@/types/drop'
 import type { ProductionScenarioListResponse, ProductionScenarioResponse } from '@/types/production'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,15 @@ export function ProductionScenarioPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+
+  // FlowFrame의 탭 잠금과 같은 캐시 키(['drops', dropId])를 써서, 확정된 Drop을 URL로
+  // 직접 열었을 때도 "이 제작안 선택" 버튼이 활성 상태로 보이지 않게 한다.
+  const dropQuery = useQuery({
+    queryKey: ['drops', dropId],
+    queryFn: () => apiFetch<DropResponse>(`/api/drops/${dropId}`),
+    enabled: Boolean(dropId) && isAuthenticated,
+  })
+  const isDropConfirmed = dropQuery.data?.status === 'CONFIRMED'
 
   // calculateMutation.isPending/.data를 화면에서 직접 참조하면, onSuccess는 최신 데이터로
   // 정상 실행되는데도 그 다음 리렌더가 이전 상태(대기 중)를 계속 보여주는 현상이 있어서
@@ -194,7 +204,7 @@ export function ProductionScenarioPage() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          disabled={scenario.selected || selectMutation.isPending}
+                          disabled={scenario.selected || selectMutation.isPending || isDropConfirmed}
                           onClick={() => selectMutation.mutate(scenario.scenarioId)}
                         >
                           {scenario.selected

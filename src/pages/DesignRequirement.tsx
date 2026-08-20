@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { readCache, writeCache } from '@/lib/persisted-cache'
 import type {
   DesignRequirementResponse,
+  DropResponse,
   MaterialColor,
   MaterialGrade,
   MaterialPattern,
@@ -60,6 +62,16 @@ function optionLabel(options: readonly { value: string; label: string }[], value
 export function DesignRequirementPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+
+  // FlowFrame의 탭 잠금과 같은 캐시 키(['drops', dropId])를 써서, 확정된 Drop을 URL로
+  // 직접 열었을 때도 이 화면의 입력 필드들이 활성 상태로 보이지 않게 한다.
+  const dropQuery = useQuery({
+    queryKey: ['drops', dropId],
+    queryFn: () => apiFetch<DropResponse>(`/api/drops/${dropId}`),
+    enabled: Boolean(dropId) && isAuthenticated,
+  })
+  const isDropConfirmed = dropQuery.data?.status === 'CONFIRMED'
 
   // f4에서 "이전 단계로"로 돌아왔을 때, 또는 새로고침 후에도 방금 저장했던 조건이 폼에
   // 남아있도록 저장 mutation의 onSuccess가 채워두는 값을 읽어온다(TanStack Query 인메모리
@@ -135,6 +147,7 @@ export function DesignRequirementPage() {
                 <Select
                   value={materialType}
                   onValueChange={(value) => setMaterialType((value as MaterialType) ?? '')}
+                  disabled={isDropConfirmed}
                 >
                   <SelectTrigger id="materialType" className="w-full">
                     <SelectValue placeholder="선택">
@@ -151,7 +164,11 @@ export function DesignRequirementPage() {
                 </Select>
               </FormField>
               <FormField label="색상 계열" htmlFor="color" className="[&_label]:text-xs [&_label]:text-muted-foreground">
-                <Select value={color} onValueChange={(value) => setColor((value as MaterialColor) ?? '')}>
+                <Select
+                  value={color}
+                  onValueChange={(value) => setColor((value as MaterialColor) ?? '')}
+                  disabled={isDropConfirmed}
+                >
                   <SelectTrigger id="color" className="w-full">
                     <SelectValue placeholder="선택">{optionLabel(COLOR_OPTIONS, color)}</SelectValue>
                   </SelectTrigger>
@@ -165,7 +182,11 @@ export function DesignRequirementPage() {
                 </Select>
               </FormField>
               <FormField label="패턴 선호" htmlFor="pattern" className="[&_label]:text-xs [&_label]:text-muted-foreground">
-                <Select value={pattern} onValueChange={(value) => setPattern((value as MaterialPattern) ?? '')}>
+                <Select
+                  value={pattern}
+                  onValueChange={(value) => setPattern((value as MaterialPattern) ?? '')}
+                  disabled={isDropConfirmed}
+                >
                   <SelectTrigger id="pattern" className="w-full">
                     <SelectValue placeholder="선택">{optionLabel(PATTERN_OPTIONS, pattern)}</SelectValue>
                   </SelectTrigger>
@@ -179,7 +200,11 @@ export function DesignRequirementPage() {
                 </Select>
               </FormField>
               <FormField label="최소 등급" htmlFor="minGrade" className="[&_label]:text-xs [&_label]:text-muted-foreground">
-                <Select value={minGrade} onValueChange={(value) => setMinGrade((value as MaterialGrade) ?? '')}>
+                <Select
+                  value={minGrade}
+                  onValueChange={(value) => setMinGrade((value as MaterialGrade) ?? '')}
+                  disabled={isDropConfirmed}
+                >
                   <SelectTrigger id="minGrade" className="w-full">
                     <SelectValue placeholder="선택">{minGrade || undefined}</SelectValue>
                   </SelectTrigger>
@@ -200,7 +225,7 @@ export function DesignRequirementPage() {
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
         <CardFooter className="justify-end">
-          <Button onClick={() => mutate()} disabled={!hasAllConditions || isPending}>
+          <Button onClick={() => mutate()} disabled={!hasAllConditions || isPending || isDropConfirmed}>
             {isPending ? '저장 중...' : '다음: 소재 후보 추천 받기'}
           </Button>
         </CardFooter>

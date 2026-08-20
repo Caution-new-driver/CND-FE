@@ -16,7 +16,7 @@ import type {
   MaterialSelectionRequest,
   MaterialSelectionResponse,
 } from '@/types/candidate'
-import type { DesignRequirementResponse } from '@/types/drop'
+import type { DesignRequirementResponse, DropResponse } from '@/types/drop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -88,6 +88,15 @@ export function MaterialCandidatesPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+
+  // FlowFrame의 탭 잠금(dropId 기준 GET /api/drops/{dropId})과 같은 캐시 키를 써서, 확정된
+  // Drop을 URL로 직접 열었을 때도 이 화면 자체의 컨트롤들이 활성 상태로 보이지 않게 한다.
+  const dropQuery = useQuery({
+    queryKey: ['drops', dropId],
+    queryFn: () => apiFetch<DropResponse>(`/api/drops/${dropId}`),
+    enabled: Boolean(dropId) && isAuthenticated,
+  })
+  const isDropConfirmed = dropQuery.data?.status === 'CONFIRMED'
 
   const [mainCandidateId, setMainCandidateId] = useState('')
   const [pointCandidateId, setPointCandidateId] = useState('')
@@ -286,7 +295,7 @@ export function MaterialCandidatesPage() {
                 variant="secondary"
                 size="sm"
                 onClick={() => calculateMutation.mutate()}
-                disabled={isLoadingCandidates}
+                disabled={isLoadingCandidates || isDropConfirmed}
               >
                 {isLoadingCandidates ? '재계산 중...' : '다시 계산'}
               </Button>
@@ -308,8 +317,10 @@ export function MaterialCandidatesPage() {
                     <button
                       key={candidate.candidateId}
                       type="button"
+                      disabled={isDropConfirmed}
                       onClick={() => handleMainCandidateChange(candidate.candidateId)}
                       className={cn(
+                        'disabled:pointer-events-none disabled:opacity-50',
                         'flex flex-col items-start gap-2 rounded-md border p-2.5 text-left transition-colors',
                         isSelected ? 'border-primary ring-1 ring-primary' : 'border-border hover:border-input',
                       )}
@@ -365,6 +376,7 @@ export function MaterialCandidatesPage() {
                   <Select
                     value={mainCandidateId}
                     onValueChange={(value) => handleMainCandidateChange(value ?? '')}
+                    disabled={isDropConfirmed}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="주 소재 선택">
@@ -399,6 +411,7 @@ export function MaterialCandidatesPage() {
                     onValueChange={(value) =>
                       setPointCandidateId(value === NO_POINT_MATERIAL ? '' : (value ?? ''))
                     }
+                    disabled={isDropConfirmed}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="포인트 소재 (선택)">
@@ -436,6 +449,7 @@ export function MaterialCandidatesPage() {
                       onValueChange={(value) =>
                         setSelectedAccessoryIds((prev) => ({ ...prev, [accessoryType]: value ?? '' }))
                       }
+                      disabled={isDropConfirmed}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder={`${accessoryType} 색상 선택`}>
@@ -476,7 +490,11 @@ export function MaterialCandidatesPage() {
           <Button
             onClick={() => confirmMutation.mutate()}
             disabled={
-              !mainCandidateId || !hasAllAccessories || isLoadingCandidates || confirmMutation.isPending
+              !mainCandidateId ||
+              !hasAllAccessories ||
+              isLoadingCandidates ||
+              confirmMutation.isPending ||
+              isDropConfirmed
             }
           >
             {confirmMutation.isPending ? '처리 중...' : '다음: 제작 가능 수량 계산'}
