@@ -234,6 +234,13 @@ export function MaterialCandidatesPage() {
     return Array.from(groups.entries())
   }, [accessoriesQuery.data])
 
+  // "다음"을 누르기 전에 필요한 부자재 종류(지퍼·링)를 전부 골랐는지 확인한다. 이게 없으면
+  // 주 소재만 고르고 부자재는 하나도 안 골라도 다음 단계로 넘어가져서, 나중에 f6 확정 시점에야
+  // "부자재 조합을 먼저 확정해야 합니다" 에러로 뒤늦게, 엉뚱한 곳에서 막히는 문제가 있었다.
+  const hasAllAccessories =
+    accessoryGroups.length > 0 &&
+    accessoryGroups.every(([accessoryType]) => Boolean(selectedAccessoryIds[accessoryType]))
+
   const confirmMutation = useMutation({
     mutationFn: async () => {
       await apiFetch(`/api/drops/${dropId}/material-selection`, {
@@ -452,6 +459,8 @@ export function MaterialCandidatesPage() {
             )}
           </PanelSection>
 
+          {!hasAllAccessories && <FormMessage>부자재를 모두 선택해주세요.</FormMessage>}
+
           {confirmMutation.isError && (
             <FormMessage>
               {confirmMutation.error instanceof ApiError
@@ -466,7 +475,9 @@ export function MaterialCandidatesPage() {
           </Button>
           <Button
             onClick={() => confirmMutation.mutate()}
-            disabled={!mainCandidateId || isLoadingCandidates || confirmMutation.isPending}
+            disabled={
+              !mainCandidateId || !hasAllAccessories || isLoadingCandidates || confirmMutation.isPending
+            }
           >
             {confirmMutation.isPending ? '처리 중...' : '다음: 제작 가능 수량 계산'}
           </Button>

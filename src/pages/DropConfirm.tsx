@@ -176,6 +176,13 @@ export function DropConfirmPage() {
     expectedProductionDays.trim() !== '' &&
     Number(expectedProductionDays) > 0
 
+  // f3(희망 소재 조건)·f4(부자재)처럼, 확정 버튼이 비활성화된 이유를 조용히 숨기지 않고
+  // 안내해준다. selectedScenario가 있는 화면(필드가 실제로 보이는 상태)에서만 의미가 있다.
+  const missingConfirmFields =
+    !isConfirmed &&
+    Boolean(selectedScenario) &&
+    (name.trim() === '' || expectedProductionDays.trim() === '' || Number(expectedProductionDays) <= 0)
+
   // 소개문을 고치거나 AI로 재생성만 하고 "저장"을 안 누른 상태로 화면을 벗어나면
   // 그 내용이 그대로 유실되므로, 벗어나기 전에 확인창을 띄운다.
   function navigateAwayFromIntro(to: string) {
@@ -204,9 +211,7 @@ export function DropConfirmPage() {
                 제작안 정보를 불러오지 못했습니다. 이전 단계에서 제작안을 먼저 선택했는지 확인해주세요.
               </FormMessage>
             ) : !selectedScenario ? (
-              <p className="py-2 text-[11.5px] text-muted-foreground">
-                확정된 제작안이 없습니다. 이전 단계에서 제작안을 먼저 선택해주세요.
-              </p>
+              <FormMessage>확정된 제작안이 없습니다. 이전 단계에서 제작안을 먼저 선택해주세요.</FormMessage>
             ) : (
               <>
                 <FormField label="템플릿" className="[&_label]:text-xs [&_label]:text-muted-foreground">
@@ -244,6 +249,9 @@ export function DropConfirmPage() {
                     disabled={isConfirmed}
                   />
                 </FormField>
+                {missingConfirmFields && (
+                  <FormMessage>이름과 예상 제작기간을 모두 입력해주세요.</FormMessage>
+                )}
                 {confirmMutation.isError && (
                   <FormMessage>
                     {apiErrorMessage(confirmMutation.error, 'Drop 확정에 실패했습니다. 다시 시도해주세요.')}

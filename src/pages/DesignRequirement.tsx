@@ -195,7 +195,7 @@ export function DesignRequirementPage() {
             </div>
           </div>
           {!hasAllConditions && (
-            <FormMessage variant="muted">희망 소재 조건을 모두 선택해주세요.</FormMessage>
+            <FormMessage>희망 소재 조건을 모두 선택해주세요.</FormMessage>
           )}
           {isError && <FormMessage>저장에 실패했습니다. 다시 시도해주세요.</FormMessage>}
         </CardContent>
