@@ -20,6 +20,7 @@ export interface DropResponse {
   introText: string | null
   expectedProductionDays: number | null
   createdAt: string
+  regenerationsRemaining: number
   templateId: string
   templateName: string
   patternPieces: PatternPiece[]

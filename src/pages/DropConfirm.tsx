@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError, apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -9,6 +9,7 @@ import type {
   DropConfirmResponse,
   DropIntroTextRequest,
   DropIntroTextResponse,
+  DropResponse,
 } from '@/types/drop'
 import type { ProductionScenarioListResponse } from '@/types/production'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,7 @@ export function DropConfirmPage() {
   const { dropId } = useParams<{ dropId: string }>()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
 
   const [name, setName] = useState('')
   const [expectedProductionDays, setExpectedProductionDays] = useState('')
@@ -73,12 +75,35 @@ export function DropConfirmPage() {
     enabled: Boolean(dropId) && isAuthenticated,
   })
 
+  // f6에 "방금 확정"이 아니라 탭 이동·새로고침·"이어서 제작"으로 재진입한 경우,
+  // confirmResult(로컬 상태)는 항상 null이라 이미 확정된 Drop인데도 빈 폼이 다시 나타났었다.
+  // 서버에서 직접 조회해 확정 상태면 폼을 그 값으로 채운다.
+  const dropQuery = useQuery({
+    queryKey: ['drops', dropId],
+    queryFn: () => apiFetch<DropResponse>(`/api/drops/${dropId}`),
+    enabled: Boolean(dropId) && isAuthenticated,
+  })
+  const hydratedFromServer = useRef(false)
+  useEffect(() => {
+    if (hydratedFromServer.current) return
+    const drop = dropQuery.data
+    if (!drop || drop.status !== 'CONFIRMED') return
+    hydratedFromServer.current = true
+    setName(drop.name ?? '')
+    setExpectedProductionDays(
+      drop.expectedProductionDays != null ? String(drop.expectedProductionDays) : '',
+    )
+    setIntroText(drop.introText ?? '')
+    setSavedIntroText(drop.introText ?? '')
+    setRegenerationsRemaining(drop.regenerationsRemaining)
+  }, [dropQuery.data])
+
   const scenarios = scenariosQuery.data?.scenarios ?? []
   const selectedScenario =
     scenarios.find((scenario) => scenario.selected) ??
     scenarios.find((scenario) => scenario.scenarioId === scenariosQuery.data?.selectedScenarioId)
 
-  const isConfirmed = confirmResult !== null
+  const isConfirmed = confirmResult !== null || dropQuery.data?.status === 'CONFIRMED'
 
   // b13: Drop 확정 (이름·예상 제작기간 저장 + 상태 CONFIRMED 전환 + AI 소개문 초안 생성)
   const confirmMutation = useMutation({
@@ -95,6 +120,9 @@ export function DropConfirmPage() {
       setRegenerationsRemaining(data.regenerationsRemaining)
       setIntroText(data.introText ?? '')
       setSavedIntroText(data.introText ?? '')
+      // FlowFrame도 같은 쿼리 키(['drops', dropId])로 상태를 조회해 탭 잠금 여부를 정하므로,
+      // 새로고침 없이도 바로 02~05 탭이 잠기도록 캐시를 무효화한다.
+      queryClient.invalidateQueries({ queryKey: ['drops', dropId] })
       setSuccessPopup({
         title: 'Drop이 확정되었습니다',
         description: 'AI가 생성한 소개문 초안을 확인하고, 필요하면 수정 후 저장해주세요.',

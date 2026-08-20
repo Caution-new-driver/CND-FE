@@ -1,7 +1,11 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 
+import { apiFetch } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import type { DropResponse } from "@/types/drop"
 
 type FlowTab = {
   step: number
@@ -50,9 +54,19 @@ function FlowFrame({
   children: ReactNode
 }) {
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
   const tabs = buildFlowTabs(dropId)
   const sequentialTabs = tabs.filter((tab) => !tab.alwaysClickable)
   const utilityTabs = tabs.filter((tab) => tab.alwaysClickable)
+
+  // Drop이 CONFIRMED로 확정된 뒤에는 02~05(편집 단계) 탭을 잠근다. 진입 경로(방금 확정 vs
+  // 탭으로 재진입)와 무관하게 항상 정확해야 하므로 로컬 상태가 아니라 서버에서 직접 조회한다.
+  const dropQuery = useQuery({
+    queryKey: ["drops", dropId],
+    queryFn: () => apiFetch<DropResponse>(`/api/drops/${dropId}`),
+    enabled: Boolean(dropId) && isAuthenticated,
+  })
+  const isDropConfirmed = dropQuery.data?.status === "CONFIRMED"
 
   // 활성 탭이 바뀔 때 배경색을 즉시 스냅하는 대신, 이전 탭 자리에서 새 탭 자리로 슥
   // 미끄러져 이동하는 것처럼 보이도록 별도의 배경 조각(indicator)을 하나만 두고
@@ -69,7 +83,11 @@ function FlowFrame({
 
   function renderTab({ step, label, to, alwaysClickable }: FlowTab) {
     const isActive = step === activeStep
-    const isClickable = Boolean(to) && !isActive && (alwaysClickable || step <= activeStep)
+    // 01(소재 등록)·06(Drop 확정)·Drop 목록(alwaysClickable)은 확정 여부와 무관하게 그대로 두고,
+    // 그 사이의 편집 단계(02~05)만 확정 후 잠근다.
+    const isLockedByConfirm = isDropConfirmed && !alwaysClickable && step >= 2 && step <= 5
+    const isClickable =
+      Boolean(to) && !isActive && !isLockedByConfirm && (alwaysClickable || step <= activeStep)
     return (
       <button
         key={step}
