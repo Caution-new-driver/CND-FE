@@ -64,7 +64,7 @@ export function DropConfirmPage() {
   const [confirmResult, setConfirmResult] = useState<DropConfirmResponse | null>(null)
   const [regenerationsRemaining, setRegenerationsRemaining] = useState<number | null>(null)
   // Drop 확정 / 소개문 저장이 끝났을 때 안내 팝업으로 알려준다.
-  const [successPopup, setSuccessPopup] = useState<{ title: string; description: string } | null>(
+  const [infoPopup, setInfoPopup] = useState<{ title: string; description: string } | null>(
     null,
   )
 
@@ -123,7 +123,7 @@ export function DropConfirmPage() {
       // FlowFrame도 같은 쿼리 키(['drops', dropId])로 상태를 조회해 탭 잠금 여부를 정하므로,
       // 새로고침 없이도 바로 02~05 탭이 잠기도록 캐시를 무효화한다.
       queryClient.invalidateQueries({ queryKey: ['drops', dropId] })
-      setSuccessPopup({
+      setInfoPopup({
         title: 'Drop이 확정되었습니다',
         description: 'AI가 생성한 소개문 초안을 확인하고, 필요하면 수정 후 저장해주세요.',
       })
@@ -158,7 +158,7 @@ export function DropConfirmPage() {
     onSuccess: (data) => {
       setSavedIntroText(data.introText)
       setRegenerationsRemaining(data.regenerationsRemaining)
-      setSuccessPopup({ title: '저장완료', description: '소개문이 저장되었습니다.' })
+      setInfoPopup({ title: '저장완료', description: '소개문이 저장되었습니다.' })
     },
   })
 
@@ -183,21 +183,27 @@ export function DropConfirmPage() {
     Boolean(selectedScenario) &&
     (name.trim() === '' || expectedProductionDays.trim() === '' || Number(expectedProductionDays) <= 0)
 
-  // 소개문을 고치거나 AI로 재생성만 하고 "저장"을 안 누른 상태로 화면을 벗어나면
-  // 그 내용이 그대로 유실되므로, 벗어나기 전에 확인창을 띄운다.
+  // 소개문을 고치거나 AI로 재생성만 하고 "저장"을 안 누른 상태로 화면을 벗어나면 그
+  // 내용이 그대로 유실된다. 예전엔 confirm() 팝업으로 "그래도 나가시겠습니까?"라고 물어보고
+  // 넘어갈 수 있게 뒀는데, 이제는 저장해서 DB와 같아질 때까지 아예 못 나가게 막는다.
+  // FlowFrame의 탭 이동과 아래 두 버튼이 이 함수를 공유한다.
+  function introTextBlockReason(): string | null {
+    if (introText === savedIntroText) return null
+    return '소개문에 저장하지 않은 수정사항이 있습니다. 저장 후 다시 시도해주세요.'
+  }
+
   function navigateAwayFromIntro(to: string) {
-    if (introText !== savedIntroText) {
-      const confirmed = window.confirm(
-        '저장하지 않은 소개문 변경사항이 있습니다. 이동하면 내용이 사라집니다. 계속하시겠습니까?',
-      )
-      if (!confirmed) return
+    const reason = introTextBlockReason()
+    if (reason) {
+      setInfoPopup({ title: '이동할 수 없습니다', description: reason })
+      return
     }
     navigate(to)
   }
 
   return (
     <CenteredPage>
-      <FlowFrame activeStep={6} dropId={dropId}>
+      <FlowFrame activeStep={6} dropId={dropId} navigationGuard={introTextBlockReason}>
       <Card className="w-full">
         <CardHeader>
           <CardTitle>RUN Drop 확정 · 소개문</CardTitle>
@@ -348,16 +354,16 @@ export function DropConfirmPage() {
       </Card>
       </FlowFrame>
 
-      <Dialog open={successPopup !== null} onOpenChange={(open) => !open && setSuccessPopup(null)}>
+      <Dialog open={infoPopup !== null} onOpenChange={(open) => !open && setInfoPopup(null)}>
         <DialogContent showCloseButton={false} className="max-w-xs">
-          {successPopup && (
+          {infoPopup && (
             <>
               <DialogHeader>
-                <DialogTitle>{successPopup.title}</DialogTitle>
-                <DialogDescription>{successPopup.description}</DialogDescription>
+                <DialogTitle>{infoPopup.title}</DialogTitle>
+                <DialogDescription>{infoPopup.description}</DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button onClick={() => setSuccessPopup(null)}>확인</Button>
+                <Button onClick={() => setInfoPopup(null)}>확인</Button>
               </DialogFooter>
             </>
           )}

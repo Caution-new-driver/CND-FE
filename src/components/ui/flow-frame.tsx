@@ -6,6 +6,15 @@ import { apiFetch } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import type { DropResponse } from "@/types/drop"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 type FlowTab = {
   step: number
@@ -46,12 +55,17 @@ function FlowFrame({
   maxWidthClassName,
   className,
   children,
+  navigationGuard,
 }: {
   activeStep: number
   dropId?: string
   maxWidthClassName?: string
   className?: string
   children: ReactNode
+  // 탭 이동 직전에 호출된다. 저장 안 한 변경사항 등으로 이동을 막아야 하면 보여줄 안내
+  // 문구를 반환하고, 문제없으면 null을 반환한다. f6(소개문 미저장) 같은 특정 페이지만
+  // 쓰는 선택적 훅이라, 안 넘기면 지금까지처럼 그냥 바로 이동한다.
+  navigationGuard?: () => string | null
 }) {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
@@ -74,6 +88,7 @@ function FlowFrame({
   const tabsRowRef = useRef<HTMLDivElement>(null)
   const activeTabRef = useRef<HTMLButtonElement>(null)
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null)
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     const activeButton = activeTabRef.current
@@ -94,7 +109,16 @@ function FlowFrame({
         ref={isActive ? activeTabRef : undefined}
         type="button"
         disabled={!isClickable}
-        onClick={() => to && navigate(to)}
+        onClick={() => {
+          if (!to) return
+          const reason = navigationGuard?.()
+          if (reason) {
+            setBlockedMessage(reason)
+            return
+          }
+          setBlockedMessage(null)
+          navigate(to)
+        }}
         className={cn(
           "relative z-10 shrink-0 rounded-t-lg px-3.5 py-2 text-[11.5px] font-semibold whitespace-nowrap transition-colors",
           isActive
@@ -138,6 +162,18 @@ function FlowFrame({
         </div>
       </div>
       <div className="bg-brand-cognac p-4">{children}</div>
+
+      <Dialog open={blockedMessage !== null} onOpenChange={(open) => !open && setBlockedMessage(null)}>
+        <DialogContent showCloseButton={false} className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>이동할 수 없습니다</DialogTitle>
+            <DialogDescription>{blockedMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setBlockedMessage(null)}>확인</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
