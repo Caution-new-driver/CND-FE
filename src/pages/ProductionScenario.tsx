@@ -120,8 +120,12 @@ export function ProductionScenarioPage() {
   const data = scenariosResult
   const scenarios = data?.scenarios ?? []
   const headlineScenario = scenarios.find((s) => s.scenarioType === 'MAIN_ONLY') ?? scenarios[0]
+  // 아직 아무 제작안도 선택 안 했으면(초기 진입) 미니백 단독 기준으로 보여주고,
+  // 선택했으면 위쪽 수량/활용률/남은 영역이 그 선택한 제작안 기준으로 바뀌게 한다.
+  const selectedScenario = scenarios.find((s) => s.selected)
+  const displayScenario = selectedScenario ?? headlineScenario
   const miniBagQuantity =
-    headlineScenario?.items.find((item) => item.productType === 'MINI_BAG')?.quantity ?? 0
+    displayScenario?.items.find((item) => item.productType === 'MINI_BAG')?.quantity ?? 0
 
   const isLoading = calcStatus === 'pending'
   const hasError = calcStatus === 'error'
@@ -159,13 +163,13 @@ export function ProductionScenarioPage() {
                 </div>
                 <div className="flex flex-col items-center justify-center gap-0.5 rounded-md border border-border px-1.5 py-3">
                   <p className="text-[19px] font-bold">
-                    {Math.round(headlineScenario.materialUtilizationRate)}%
+                    {Math.round(displayScenario.materialUtilizationRate)}%
                   </p>
                   <p className="text-[10px] text-muted-foreground">소재 활용률</p>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-0.5 rounded-md border border-border px-1.5 py-3">
                   <p className="text-[19px] font-bold">
-                    {Math.round(100 - headlineScenario.materialUtilizationRate)}%
+                    {Math.round(100 - displayScenario.materialUtilizationRate)}%
                   </p>
                   <p className="text-[10px] text-muted-foreground">남은 영역</p>
                 </div>
