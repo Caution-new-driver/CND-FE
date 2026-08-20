@@ -230,7 +230,7 @@ export function DropConfirmPage() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Drop 이름"
-                    readOnly={isConfirmed}
+                    disabled={isConfirmed}
                   />
                 </FormField>
                 <FormField label="예상 제작기간" htmlFor="expectedDays" className="[&_label]:text-xs [&_label]:text-muted-foreground">
@@ -241,7 +241,7 @@ export function DropConfirmPage() {
                     value={expectedProductionDays}
                     onChange={(event) => setExpectedProductionDays(event.target.value)}
                     placeholder="예상 제작기간 (일)"
-                    readOnly={isConfirmed}
+                    disabled={isConfirmed}
                   />
                 </FormField>
                 {confirmMutation.isError && (
