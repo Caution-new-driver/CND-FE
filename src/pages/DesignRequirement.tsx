@@ -101,7 +101,8 @@ export function DesignRequirementPage() {
         writeCache(`design-requirement:${dropId}`, data)
       })
       .catch(() => {
-        // 아직 저장한 적 없는 새 Drop이면 404 — 빈 폼 그대로 둔다.
+        // 네트워크 오류 등 진짜 조회 실패 시에는 빈 폼 그대로 둔다.
+        // (저장한 적 없는 새 Drop은 에러가 아니라 200 + materialType 등이 null인 응답으로 옴)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropId])

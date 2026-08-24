@@ -43,10 +43,11 @@ export interface MaterialSelectionRequest {
   pointCandidateId: string | null
 }
 
+// GET은 아직 선택한 적 없으면 mainMaterial이 null인 빈 응답을 반환한다(404 아님).
 export interface MaterialSelectionResponse {
-  selectionId: string
+  selectionId: string | null
   dropId: string
-  mainMaterial: MaterialResponse
+  mainMaterial: MaterialResponse | null
   pointMaterial: MaterialResponse | null
 }
 
