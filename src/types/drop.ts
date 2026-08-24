@@ -40,8 +40,9 @@ export type MaterialPattern = 'MONOGRAM' | 'SOLID' | 'GEOMETRIC' | 'STRIPE' | 'O
 export type MaterialGrade = 'A' | 'B' | 'C'
 export type AccessoryColor = 'GOLD' | 'SILVER' | 'BLACK'
 
+// GET은 아직 저장한 적 없으면 id가 null인 빈 응답을 반환한다(404 아님).
 export interface DesignRequirementResponse {
-  id: string
+  id: string | null
   dropId: string
   materialType: MaterialType | null
   color: MaterialColor | null

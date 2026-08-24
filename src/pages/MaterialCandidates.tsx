@@ -185,7 +185,7 @@ export function MaterialCandidatesPage() {
   )
 
   // "이어서 제작" 재진입 시 이전에 저장해둔 조합(주 소재·포인트 소재·부자재)을 복원한다.
-  // 저장된 적 없는 새 진입이면(404) AI 추천 1순위를 기본 선택값으로 잡아둔다.
+  // 저장된 적 없는 새 진입이면 mainMaterial이 null로 와서 AI 추천 1순위를 기본 선택값으로 잡아둔다.
   // candidateId는 재계산할 때마다 새로 발급돼서 저장은 candidateId가 아니라 실제 소재
   // materialId 기준이라, 지금 후보 목록에서 같은 materialId를 가진 후보를 다시 찾아 매칭한다.
   const restoredSelectionForDropId = useRef<string | null>(null)
@@ -195,8 +195,15 @@ export function MaterialCandidatesPage() {
 
     apiFetch<MaterialSelectionResponse>(`/api/drops/${dropId}/material-selection`)
       .then((selection) => {
+        const mainMaterial = selection.mainMaterial
+        if (!mainMaterial) {
+          // 저장된 조합이 없는 새 진입 — AI 추천 1순위를 기본값으로 잡는다.
+          setMainCandidateId(candidates[0].candidateId)
+          return
+        }
+
         const mainCandidate = candidates.find(
-          (candidate) => candidate.material.id === selection.mainMaterial.id,
+          (candidate) => candidate.material.id === mainMaterial.id,
         )
         // 저장된 조합은 있지만(f3에서 조건을 바꿔 재계산한 뒤라) 그 소재가 지금 후보 목록에
         // 없으면 저장된 적 없는 새 진입과 똑같이 AI 추천 1순위로 대체한다. 그냥 두면 아무 것도
@@ -210,7 +217,7 @@ export function MaterialCandidatesPage() {
         if (pointCandidate) setPointCandidateId(pointCandidate.candidateId)
       })
       .catch(() => {
-        // 저장된 조합이 없는 새 진입 — AI 추천 1순위를 기본값으로 잡는다.
+        // 네트워크 오류 등 진짜 조회 실패 시 폴백.
         setMainCandidateId(candidates[0].candidateId)
       })
 

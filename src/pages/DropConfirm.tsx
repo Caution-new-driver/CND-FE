@@ -163,7 +163,10 @@ export function DropConfirmPage() {
   })
 
   const isLoading = scenariosQuery.isLoading
-  const hasError = scenariosQuery.isError
+  // production-scenarios GET은 아직 계산한 적 없어도 에러(구 409) 대신 200 + 빈 배열로
+  // 응답한다. "제작안 정보를 불러오지 못했습니다" 문구·분기를 그대로 유지하기 위해
+  // 이 경우도 hasError로 합쳐서 판단한다.
+  const hasError = scenariosQuery.isError || (scenariosQuery.isSuccess && scenarios.length === 0)
 
   if (!dropId) {
     return <FormMessage className="p-6">잘못된 접근입니다 (dropId 없음).</FormMessage>

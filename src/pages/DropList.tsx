@@ -123,7 +123,7 @@ export function DropListPage() {
   const deleteMutation = useMutation({
     mutationFn: (dropId: string) => apiFetch(`/api/drops/${dropId}`, { method: 'DELETE' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['drops'] })
+      queryClient.invalidateQueries({ queryKey: ['drops'], exact: true })
       setDropPendingDelete(null)
     },
   })

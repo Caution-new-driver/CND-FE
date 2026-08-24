@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ApiError, apiFetch } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import type { DropResponse } from '@/types/drop'
@@ -57,8 +57,8 @@ export function ProductionScenarioPage() {
   // 재계산(POST)은 확정된 소재 조합 기준으로 다시 계산하며, 이전 계산·선택 결과를 서버에서
   // 통째로 교체한다(선택 정보까지 삭제됨). 그래서 F7에서 "이전 단계로"로 돌아오는 등
   // 재마운트될 때마다 무조건 재계산하면 방금 선택한 제작안이 사라진다. 진입 시에는 먼저
-  // GET으로 이미 저장된 계산 결과를 그대로 재사용하고, 계산 이력이 없을 때(409)만 최초
-  // 계산(POST)을 수행한다.
+  // GET으로 이미 저장된 계산 결과를 그대로 재사용하고, 계산 이력이 없을 때(scenarios가
+  // 빈 배열)만 최초 계산(POST)을 수행한다.
   const calculateMutation = useMutation({
     mutationFn: () =>
       apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`, {
@@ -88,17 +88,15 @@ export function ProductionScenarioPage() {
     setCalcStatus('pending')
     apiFetch<ProductionScenarioListResponse>(`/api/drops/${dropId}/production-scenarios`)
       .then((data) => {
+        if (data.scenarios.length === 0) {
+          // 아직 계산된 적 없음 -> 최초 계산
+          calculateMutation.mutate()
+          return
+        }
         setScenariosResult(data)
         setCalcStatus('success')
       })
-      .catch((error: unknown) => {
-        if (error instanceof ApiError && error.status === 409) {
-          // 아직 계산된 적 없음 -> 최초 계산
-          calculateMutation.mutate()
-        } else {
-          setCalcStatus('error')
-        }
-      })
+      .catch(() => setCalcStatus('error'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropId, isAuthenticated])
 
